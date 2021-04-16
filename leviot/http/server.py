@@ -1,7 +1,7 @@
 import uasyncio as asyncio
 import usys
 
-from leviot import conf, ulog, cpufreq
+from leviot import conf, ulog
 from leviot.constants import FAN_SPEED_MAP
 from leviot.http import uhttp, html, ufirewall
 from leviot.http.uhttp import HTTPError
@@ -26,7 +26,6 @@ class HttpServer:
         await asyncio.start_server(self.on_http_connection, conf.http_listen, conf.http_port)
         log.i("HTTP server up at {}:{}".format(conf.http_listen, conf.http_port))
 
-    @cpufreq.afast
     async def on_http_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
         # noinspection PyBroadException
         try:
