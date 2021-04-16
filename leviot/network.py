@@ -28,11 +28,10 @@ def up() -> network.WLAN:
                     wlan.connect(cfg.wifi_ssid, cfg.wifi_key)
 
                     while not wlan.isconnected():
-                        utime.sleep_ms(500)
+                        utime.sleep_ms(250)
                         with gpio:
                             led_on = not led_on
                             gpio.value(constants.LED_POWER, led_on)
-                log.i("Connected with IP " + wlan.ifconfig()[0])
                 break
             except Exception as e:
                 log.e("Failed to connect to Wi-Fi, will retry")
@@ -43,6 +42,7 @@ def up() -> network.WLAN:
                 except Exception as e:
                     usys.print_exception(e)
                     pass
+        log.i("Connected with IP " + wlan.ifconfig()[0])
 
     elif cfg.wifi_mode == "ap":
         wlan = network.WLAN(network.AP_IF)
