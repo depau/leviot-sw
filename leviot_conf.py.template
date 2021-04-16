@@ -29,7 +29,7 @@ wifi_authmode = "wpa2_psk"
 # If set to -1, the radio will always be active
 # If set to x > 0, the radio will turn off and wait x beacons before waking up again. Avg delay x * 100 ms
 # If set to 0, it will use the access point DTIM value as listen interval
-wifi_listen_interval = 1
+wifi_listen_interval = 0
 
 ## Server configuration
 http_listen = "0.0.0.0"
