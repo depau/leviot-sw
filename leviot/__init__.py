@@ -31,7 +31,7 @@ def main():
         with gpio:
             gpio.leds(True)
 
-        utime.sleep_ms(500)
+        utime.sleep_ms(1000)
 
         with gpio:
             gpio.leds(False)
