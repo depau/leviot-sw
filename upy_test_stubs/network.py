@@ -13,8 +13,9 @@ class WLAN:
         print(f"STUB network.WIFI create{args}")
         self.args = args
 
-    def active(self, active):
+    def active(self, active=True):
         print(f"STUB network.WIFI.active({active})")
+        return active
 
     def config(self, **kwargs):
         print(f"STUB network.WIFI.config({kwargs})")
@@ -27,3 +28,6 @@ class WLAN:
 
     def scan(self):
         print(f"STUB network.WIFI.scan()")
+
+    def ifconfig(self, *a, **kw):
+        return "192.168.1.2", "255.255.255.0", "192.168.1.1", "192.168.1.1"

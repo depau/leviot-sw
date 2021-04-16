@@ -50,7 +50,7 @@ class UART:
         print(f"STUB: machine.UART,deinit()")
 
 
-def freq(new_clock):
+def freq(new_clock, **kw):
     print("OVERCLOCCCKKKK OMH SUCH SPEED VERY FAST {}".format(new_clock))
 
 
