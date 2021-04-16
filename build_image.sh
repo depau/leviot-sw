@@ -60,7 +60,7 @@ if [ ! -e "build-venv/bin/python" ]; then
   rm -Rf build-venv 2>/dev/null
   python3 -m venv build-venv
   source build-venv/bin/activate
-  pip install --upgrade pip wheel ampy esptool
+  pip install --upgrade pip wheel adafruit-ampy esptool
 fi
 
 if [ ! -f "micropython/LICENSE" ]; then
