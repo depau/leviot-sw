@@ -5,7 +5,7 @@ MPY_VER="a9bbf7083ef6b79cf80bdbf34984d847a6c4aae9"
 ESP32_IDF_COMMIT=v4.1.1
 
 function msg() {
-  echo -e "[\e[0;92m*\e[0m] $1"
+  echo -e "[\e[0;92m*\e[0m]" "$@"
 }
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
@@ -98,7 +98,7 @@ msg "mpy ports/$port submodules"
 msg "mpy ports/$port clean"
 "${make[@]}" -j$(nproc) -C "ports/$port" clean
 
-msg "mpy ports/$port BOARD=$board ${extra_make_args[@]}"
+msg "mpy ports/$port BOARD=$board " "${extra_make_args[@]}"
 "${make[@]}" -j$(nproc) -C "ports/$port" BOARD="$board" "${extra_make_args[@]}"
 
 firmware_path="ports/$port/build-$board"
