@@ -9,10 +9,8 @@ function msg() {
 }
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-  echo "Usage: $0 [port] [board]"
-  echo "Default: esp32 GENERIC_OTA"
-  echo "ESP8266 is not supported by the code, so even though this scripts technically"
-  echo "can build ESP8266 images, it won't work."
+  echo "Usage: $0 [board]"
+  echo "Default: GENERIC_OTA"
   echo
   echo "This script assumes a 16MB flash. If that's not what you have, edit it."
   exit
@@ -55,6 +53,14 @@ elif [ $port == "esp32" ]; then
 fi
 
 cd "$(git rev-parse --show-toplevel)"
+
+if [ ! -e "build-venv/bin/python" ]; then
+  msg "(re)create build Python virtual environment"
+  rm -Rf build-venv 2>/dev/null
+  python3 -m venv build-venv
+  source build-venv/bin/activate
+  pip install --upgrade pip wheel ampy esptool
+fi
 
 if [ ! -f "micropython/LICENSE" ]; then
   msg "clone micropython"

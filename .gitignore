@@ -154,5 +154,5 @@ leviot_conf.py
 # Firmware build dependencies and outputs
 micropython/
 esp-idf/
-build-esp32-venv/
+build-venv/
 xtensa-esp32-elf/
