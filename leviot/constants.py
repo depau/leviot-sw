@@ -21,9 +21,10 @@ PIN_SR_OUTEN = 17
 # Directly connected LED
 PIN_LED_FILTER = 26
 
-# Shift register propagation
-# The maximum delay according to the datasheet should be 63 NANOseconds so 1 us is more than enough
-SR_PROP_DELAY_US = 1
+# This has been removed since I calculated Pin.value() takes ~200 us anyway (ew slow)
+# # Shift register propagation
+# # The maximum delay according to the datasheet should be 63 NANOseconds so 1 us is more than enough
+# SR_PROP_DELAY_US = 1
 
 # Wireless auth modes
 WIFI_AUTHMODES = {

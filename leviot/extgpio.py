@@ -1,15 +1,14 @@
-import utime
+import micropython
 from machine import Pin, Signal
 
-from leviot import constants, ulog
-
-log = ulog.Logger("extgpio")
+from leviot import constants
 
 
+@micropython.native
 def pulse(pin: Signal):
-    utime.sleep_us(constants.SR_PROP_DELAY_US)
+    # utime.sleep_us(constants.SR_PROP_DELAY_US)
     pin.on()
-    utime.sleep_us(constants.SR_PROP_DELAY_US)
+    # utime.sleep_us(constants.SR_PROP_DELAY_US)
     pin.off()
 
 
@@ -45,8 +44,8 @@ class GPIOManager:
         self.commit()
         self.sr_outen.on()
 
-    def commit(self):
-        log.d("Committing shift register " + hex(self.sr_staging) + " led filter: {}".format(self.filter_led_staging))
+    @micropython.native
+    def commit(self) -> None:
         if self.filter_led_cur != self.filter_led_staging:
             self.s_filter_led.value(self.filter_led_staging)
             self.filter_led_cur = self.filter_led_staging
