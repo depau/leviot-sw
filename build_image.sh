@@ -9,22 +9,23 @@ function msg() {
 }
 
 if [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
-  echo "Usage: $0 [board]"
+  echo "Usage: $0 [board] [--16]"
   echo "Default: GENERIC_OTA"
   echo
-  echo "This script assumes a 16MB flash. If that's not what you have, edit it."
+  echo "Specify '--16' in order to build with support for 16MB flash chips. Default is 4MB."
   exit
 fi
 
 port="esp32"
 board="GENERIC_OTA"
+flash16=0
 extra_make_args=()
 
 if [ -n "$1" ]; then
-  port="$1"
+  board="$1"
 fi
-if [ -n "$2" ]; then
-  board="$2"
+if [ "$2" == "--16" ]; then
+  flash16=1
 fi
 
 if [ $port == "esp8266" ]; then
@@ -75,10 +76,13 @@ for patch in ../mpy-patches/*.patch; do
   git am <"$patch"
 done
 
-## Set 16MB flash size
-#sed -i 's/0x200000, 0x200000/0x200000, 0xe00000/g' ports/esp32/partitions.csv
-#sed -i 's/0x0f0000/0xcf0000/g' ports/esp32/partitions-ota.csv
-#sed -i 's/4MB/16MB/g' ports/esp32/boards/sdkconfig.base
+if [ $flash16 == 1 ]; then
+  ## Set 16MB flash size
+  sed -i 's/0x200000, 0x200000/0x200000, 0xe00000/g' ports/esp32/partitions.csv
+  sed -i 's/0x0f0000/0xcf0000/g' ports/esp32/partitions-ota.csv
+  sed -i 's/4MB/16MB/g' ports/esp32/boards/sdkconfig.base
+fi
+
 cd ..
 
 cd micropython
