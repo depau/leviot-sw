@@ -1,0 +1,57 @@
+from binascii import hexlify
+from machine import unique_id
+
+
+## Wi-Fi configuration
+
+# Wi-Fi mode: sta (client) or ap (access-point)
+wifi_mode = "ap"
+
+# Device hostname
+hostname = "LevIoT"
+
+# Wi-Fi name and password
+wifi_ssid = "LevIoT"
+wifi_key = "veryl33t"
+
+# Wi-Fi parameters for AP mode - ignored in sta mode
+# Authentication mode
+# - open (DON'T)
+# - wep (DON'T)
+# - wpa_psk (avoid)
+# - wpa2_psk
+# - wpa_wpa2_psk (best compromise, avoid if possible)
+wifi_authmode = "wpa2_psk"
+
+## Server configuration
+http_listen = "0.0.0.0"
+http_port = 80
+http_basic_auth = "user:pass"  # None to disable
+
+# MQTT configuration
+mqtt_config = {
+    'client_id':     b"leviot_" + hexlify(unique_id()),
+    'server':        None,
+    'port':          0,
+    'user':          '',
+    'password':      '',
+    'keepalive':     60,
+    'ping_interval': 0,
+    'ssl':           False,
+    'ssl_params':    {},
+    'response_time': 10,
+    'clean_init':    True,
+    'clean':         True,
+    'max_repubs':    4,
+    'will':          None,
+    'subs_cb':       lambda *_: None
+}
+
+homie_autodiscovery = True
+
+## Firewall configuration
+# Only allow HTTP connections from private IP addresses
+private_nets_only = True
+
+## Touch pads configuration
+tp_threshold = 480
