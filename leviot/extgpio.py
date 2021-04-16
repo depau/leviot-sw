@@ -82,9 +82,9 @@ class GPIOManager:
         """
         self.filter_led_staging = value
         if value:
-            self.sr_staging |= 0x0fff
+            self.sr_staging |= constants.ALL_SR_LEDS
         else:
-            self.sr_staging &= 0xf000
+            self.sr_staging &= ~constants.ALL_SR_LEDS
 
     def all(self, value: bool):
         self.filter_led_staging = value

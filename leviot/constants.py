@@ -54,3 +54,8 @@ FAN_CTL0 = const(3)
 FAN_CTL1 = const(2)
 FAN_CTL2 = const(1)
 FAN_CTL3 = const(0)
+
+ALL_SR_LEDS = const(
+    1 << LED_V1 | 1 << LED_V2 | 1 << LED_V3 | 1 << LED_2H | 1 << LED_4H | 1 << LED_6H | 1 << LED_8H
+    | 1 << LED_FAN | 1 << LED_POWER | 1 << LED_NIGHT | 1 << LED_LOCK | 1 << LED_TIMER
+)
