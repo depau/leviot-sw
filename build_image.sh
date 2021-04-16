@@ -54,7 +54,6 @@ elif [ $port == "esp32" ]; then
   extra_make_args=(ESPIDF="$ESPIDF")
 fi
 
-
 cd "$(git rev-parse --show-toplevel)"
 
 if [ ! -f "micropython/LICENSE" ]; then
@@ -67,7 +66,7 @@ git stash && git stash drop || true
 git checkout $MPY_VER
 
 for patch in ../mpy-patches/*.patch; do
-  git am < "$patch"
+  git am <"$patch"
 done
 
 ## Set 16MB flash size
@@ -75,7 +74,6 @@ done
 #sed -i 's/0x0f0000/0xcf0000/g' ports/esp32/partitions-ota.csv
 #sed -i 's/4MB/16MB/g' ports/esp32/boards/sdkconfig.base
 cd ..
-
 
 cd micropython
 msg "micropython submodules"
@@ -91,6 +89,7 @@ msg "leviot module"
 [ -d "ports/$port/build-$board" ] && rm -Rf "ports/$port/build-$board"
 cp -a ../leviot "ports/$port/modules/leviot"
 cp -a ../mqtt_as "ports/$port/modules/mqtt_as"
+cp ../_boot.py "ports/$port/modules/"
 
 msg "mpy ports/$port submodules"
 "${make[@]}" -j$(nproc) -C "ports/$port" submodules

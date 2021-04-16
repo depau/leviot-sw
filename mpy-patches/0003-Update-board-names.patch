@@ -22,7 +22,7 @@ index ff39c4b2b..d000d217a 100644
 +++ b/ports/esp32/boards/GENERIC_OTA/mpconfigboard.h
 @@ -1,2 +1,2 @@
 -#define MICROPY_HW_BOARD_NAME "4MB/OTA module"
-+#define MICROPY_HW_BOARD_NAME "LevIoT (with OTA)"
++#define MICROPY_HW_BOARD_NAME "LevIoT (with OTA support)"
  #define MICROPY_HW_MCU_NAME "ESP32"
 --
 2.31.1

@@ -67,3 +67,6 @@ tp_threshold = 480
 ## CPU frequency "scaling"
 cpu_freq_perf = 240000000
 cpu_freq_idle = 80000000
+
+## Autoboot - set to False to prevent loading LevIoT on startup
+autoboot = True
