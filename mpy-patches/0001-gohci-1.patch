@@ -1,0 +1,43 @@
+From 4858cbfae1c4c9539c345e7ba4cc7bad31d594b6 Mon Sep 17 00:00:00 2001
+From: Thorsten von Eicken <tve@voneicken.com>
+Date: Fri, 10 Apr 2020 12:22:25 -0700
+Subject: [PATCH 1/2] gohci 1
+
+---
+ .gohci.yml | 24 ++++++++++++++++++++++++
+ 1 file changed, 24 insertions(+)
+ create mode 100644 .gohci.yml
+
+diff --git a/.gohci.yml b/.gohci.yml
+new file mode 100644
+index 000000000..94d27e3ed
+--- /dev/null
++++ b/.gohci.yml
+@@ -0,0 +1,24 @@
++version: 1
++workers:
++- name: gohci-u3
++  checks:
++  - cmd:
++    - /home/gohci/repo-info.sh
++  - cmd:
++    - /home/gohci/esp32-build.sh
++    - 4.0
++  - cmd:
++    - /home/gohci/esp32-full.sh
++    - 4.0
++  - cmd:
++    - /home/gohci/stm32-build.sh
++  - cmd:
++    - /home/gohci/stm32-full.sh
++  - cmd:
++    - /home/gohci/esp32-build.sh
++    - 3.3
++  - cmd:
++    - /home/gohci/esp32-full.sh
++    - 3.3
++  - cmd:
++    - /home/gohci/repo-save.sh
+-- 
+2.31.1
+

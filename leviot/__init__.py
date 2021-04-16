@@ -5,16 +5,21 @@ import esp32
 import uasyncio
 import usys
 import utime
+import machine
 from machine import Pin, Signal
 
 from leviot import network, constants, ulog
 from leviot.controller import LevIoT
 from leviot.extgpio import gpio
+from leviot import conf
 
 log = ulog.Logger("init")
 
 
 def main():
+    # Enable Dynamic Frequency Scaling
+    machine.freq(conf.cpu_freq_perf, min_freq=conf.cpu_freq_idle)
+
     io0_pin = Pin(0, Pin.IN, Pin.PULL_UP)
     user_interrupted = False
 

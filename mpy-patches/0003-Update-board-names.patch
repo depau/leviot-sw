@@ -1,0 +1,28 @@
+From 32c0a13ee62ceea4eae465799403af9b62563e10 Mon Sep 17 00:00:00 2001
+From: Davide Depau <davide@depau.eu>
+Date: Fri, 16 Apr 2021 00:44:55 +0200
+Subject: [PATCH] Update board name
+
+---
+ ports/esp32/boards/GENERIC/mpconfigboard.h     | 2 +-
+ ports/esp32/boards/GENERIC_OTA/mpconfigboard.h | 2 +-
+ 2 files changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/ports/esp32/boards/GENERIC/mpconfigboard.h b/ports/esp32/boards/GENERIC/mpconfigboard.h
+index 644807f78..4445b946e 100644
+--- a/ports/esp32/boards/GENERIC/mpconfigboard.h
++++ b/ports/esp32/boards/GENERIC/mpconfigboard.h
+@@ -1,2 +1,2 @@
+-#define MICROPY_HW_BOARD_NAME "ESP32 module"
++#define MICROPY_HW_BOARD_NAME "LevIoT"
+ #define MICROPY_HW_MCU_NAME "ESP32"
+diff --git a/ports/esp32/boards/GENERIC_OTA/mpconfigboard.h b/ports/esp32/boards/GENERIC_OTA/mpconfigboard.h
+index ff39c4b2b..d000d217a 100644
+--- a/ports/esp32/boards/GENERIC_OTA/mpconfigboard.h
++++ b/ports/esp32/boards/GENERIC_OTA/mpconfigboard.h
+@@ -1,2 +1,2 @@
+-#define MICROPY_HW_BOARD_NAME "4MB/OTA module"
++#define MICROPY_HW_BOARD_NAME "LevIoT (with OTA)"
+ #define MICROPY_HW_MCU_NAME "ESP32"
+--
+2.31.1

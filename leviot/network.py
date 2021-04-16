@@ -3,6 +3,7 @@ import uasyncio
 import usys
 import utime
 
+import leviot_conf
 from leviot import conf as cfg, constants, ulog
 from leviot.extgpio import gpio
 
@@ -25,7 +26,7 @@ def up() -> network.WLAN:
                 if not wlan.active() or not wlan.isconnected():
                     wlan.active(True)
                     wlan.config(dhcp_hostname=cfg.hostname)
-                    wlan.connect(cfg.wifi_ssid, cfg.wifi_key)
+                    wlan.connect(cfg.wifi_ssid, cfg.wifi_key, listen_interval=leviot_conf.wifi_listen_interval)
 
                     while not wlan.isconnected():
                         utime.sleep_ms(250)
