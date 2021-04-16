@@ -30,7 +30,6 @@ class HttpServer:
         # noinspection PyBroadException
         try:
             ip, port = reader.get_extra_info('peername')
-            log.d("New connection from {}:{}".format(ip, port))
 
             if not ufirewall.is_allowed(ip):
                 log.w("IP not allowed: {}".format(ip))
@@ -39,6 +38,7 @@ class HttpServer:
 
             req = await uhttp.HTTPRequest.parse(reader)
 
+            log.d("New connection from {}:{}".format(ip, port))
             log.d("{} {}".format(req.method, req.path))
 
             if getattr(conf, 'http_basic_auth'):
@@ -63,7 +63,8 @@ class HttpServer:
             else:
                 await uhttp.HTTPResponse.not_found(writer)
         except (OSError, HTTPError) as e:
-            usys.print_exception(e)
+            if "Empty request" not in str(e):
+                usys.print_exception(e)
         except Exception:
             await uhttp.HTTPResponse.internal_server_error(writer)
         finally:
