@@ -1,6 +1,9 @@
+import micropython
+
 from leviot import conf
 
 
+@micropython.native
 def parse_ip4(ipaddr: str) -> int:
     chunks = [int(i) for i in reversed(ipaddr.split('.'))]
     ret = 0
@@ -24,7 +27,8 @@ _private_nets = (
 )
 
 
-def is_allowed(ipaddr) -> bool:
+@micropython.native
+def is_allowed(ipaddr: str) -> bool:
     if not conf.private_nets_only:
         return True
 

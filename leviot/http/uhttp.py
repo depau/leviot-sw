@@ -1,5 +1,7 @@
 import sys
 
+import micropython
+
 from leviot import VERSION
 
 _status_messages = {
@@ -15,21 +17,20 @@ _status_messages = {
 
 
 class HTTPRequest:
-    def __init__(self, method: str, path: str, httpv: str, query: dict, segment: str, headers: dict):
+    def __init__(self, method: str, path: str, query: dict, segment: str, headers: dict):
         self.method = method
         self.path = path
-        self.httpv = httpv
         self.query = query
         self.segment = segment
         self.headers = headers
 
+    @micropython.native
     def check_basic_auth(self, basic_b64):
         return not ('authorization' not in self.headers or self.headers['authorization'] != basic_b64)
 
-    @classmethod
-    async def parse(cls, reader) -> 'HTTPRequest':
-        method, path, httpv = (await reader.readline()).decode().strip().split(' ', 2)
-
+    @staticmethod
+    @micropython.native
+    def _parse_path(path: str):
         query, query_raw, segment = {}, None, None
         if '?' in path:
             path, query_raw = path.split("?", 1)
@@ -39,27 +40,41 @@ class HTTPRequest:
         if query_raw:
             query = {key: val for key, val in
                      (item.split('=', 1) for item in query_raw.split("&"))}
+        return path, query, segment
+
+    @staticmethod
+    @micropython.native
+    def _parse_header(line: bytes):
+        line = line.decode().strip()
+        if not line:
+            return False, None, None
+        if ":" not in line:
+            return True, None, None
+
+        name, value = line.split(":", 1)
+        return True, name.strip().lower(), value.strip()
+
+    @classmethod
+    async def parse(cls, reader) -> 'HTTPRequest':
+        split = (await reader.readline()).decode().strip().split(' ', 2)
+        method = split[0]
+        path = split[1]
+
+        path, query, segment = cls._parse_path(path)
 
         headers = {}
-        lastline = True
-        while lastline:
-            line = (await reader.readline()).decode().strip()
-            lastline = line
+        proceed = True
+        while proceed:
+            line = await reader.readline()
+            proceed, name, value = cls._parse_header(line)
+            if name:
+                headers[name] = value
 
-            if ":" not in line:
-                # Not an header, skip
-                continue
-
-            name, value = line.split(":", 1)
-            name = name.strip().lower()
-            value = value.strip()
-
-            headers[name] = value
-
-        return cls(method, path, httpv, query, segment, headers)
+        return cls(method, path, query, segment, headers)
 
 
 class HTTPResponse:
+    @micropython.native
     def __init__(self, status: int = 200, http_version="HTTP/1.1", headers=None, status_mesg=None, body=None):
         self.status = status
         self.http_version = http_version
@@ -79,10 +94,13 @@ class HTTPResponse:
         if 'Content-Type' not in self.headers and 'content-type' not in self.headers:
             self.headers['Content-Type'] = 'text/plain'
 
+    @micropython.native
+    def __get_http_head(self):
+        return "{} {}{}\r\n".format(
+                self.http_version, self.status, (" " + self.status_mesg) if self.status_mesg else '').encode()
+
     async def write_into(self, writer):
-        writer.write(
-            "{} {}{}\r\n".format(
-                self.http_version, self.status, (" " + self.status_mesg) if self.status_mesg else '').encode())
+        writer.write(self.__get_http_head())
         await writer.drain()
 
         for key, val in self.headers.items():

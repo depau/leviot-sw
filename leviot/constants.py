@@ -3,23 +3,23 @@ from micropython import const
 
 # Touch pads
 TOUCHPADS = {
-    "FAN": 14,
-    "FILTER": 33,
-    "NIGHT": 13,
-    "LIGHT": 32,
-    "LOCK": 27,
-    "POWER": 4,
-    "TIMER": 15,
+    "FAN": const(14),
+    "FILTER": const(33),
+    "NIGHT": const(13),
+    "LIGHT": const(32),
+    "LOCK": const(27),
+    "POWER": const(4),
+    "TIMER": const(15),
 }
 
 # Shift registers
-PIN_SR_DS = 18
-PIN_SR_CLK = 19
-PIN_SR_LATCH = 21
-PIN_SR_OUTEN = 17
+PIN_SR_DS = const(18)
+PIN_SR_CLK = const(19)
+PIN_SR_LATCH = const(21)
+PIN_SR_OUTEN = const(17)
 
 # Directly connected LED
-PIN_LED_FILTER = 26
+PIN_LED_FILTER = const(26)
 
 # This has been removed since I calculated Pin.value() takes ~200 us anyway (ew slow)
 # # Shift register propagation
