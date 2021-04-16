@@ -1,8 +1,10 @@
 import uasyncio as asyncio
+import usys
 
 from leviot import conf, ulog, cpufreq
 from leviot.constants import FAN_SPEED_MAP
 from leviot.http import uhttp, html, ufirewall
+from leviot.http.uhttp import HTTPError
 from leviot.state import StateTracker
 
 log = ulog.Logger("http_server")
@@ -26,41 +28,47 @@ class HttpServer:
 
     @cpufreq.afast
     async def on_http_connection(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter):
-        ip, port = reader.get_extra_info('peername')
-        log.d("New connection from {}:{}".format(ip, port))
+        # noinspection PyBroadException
+        try:
+            ip, port = reader.get_extra_info('peername')
+            log.d("New connection from {}:{}".format(ip, port))
 
-        if not ufirewall.is_allowed(ip):
-            log.w("IP not allowed: {}".format(ip))
-            await close_streams(writer)
-            return
-
-        req = await uhttp.HTTPRequest.parse(reader)
-
-        log.d("{} {}".format(req.method, req.path))
-
-        if getattr(conf, 'http_basic_auth'):
-            if not req.check_basic_auth(conf.http_basic_auth):
-                log.w("Request has invalid auth")
-                await uhttp.HTTPResponse.unauthorized(writer, realm="LevIoT")
+            if not ufirewall.is_allowed(ip):
+                log.w("IP not allowed: {}".format(ip))
                 await close_streams(writer)
                 return
 
-        if req.method == "GET":
-            if req.path == "/" or req.path == "/index.html":
-                await self.handle_http_index(req, writer)
-            elif req.path == "/priv-api/fan":
-                await self.handle_priv_set_fan(req, writer)
-            elif req.path == "/priv-api/on":
-                await self.handle_priv_set_power(writer, True)
-            elif req.path == "/priv-api/off":
-                await self.handle_priv_set_power(writer, False)
+            req = await uhttp.HTTPRequest.parse(reader)
+
+            log.d("{} {}".format(req.method, req.path))
+
+            if getattr(conf, 'http_basic_auth'):
+                if not req.check_basic_auth(conf.http_basic_auth):
+                    log.w("Request has invalid auth")
+                    await uhttp.HTTPResponse.unauthorized(writer, realm="LevIoT")
+                    await close_streams(writer)
+                    return
+
+            if req.method == "GET":
+                if req.path == "/" or req.path == "/index.html":
+                    await self.handle_http_index(req, writer)
+                elif req.path == "/priv-api/fan":
+                    await self.handle_priv_set_fan(req, writer)
+                elif req.path == "/priv-api/on":
+                    await self.handle_priv_set_power(writer, True)
+                elif req.path == "/priv-api/off":
+                    await self.handle_priv_set_power(writer, False)
+                else:
+                    await uhttp.HTTPResponse.not_found(writer)
+
             else:
                 await uhttp.HTTPResponse.not_found(writer)
-
-        else:
-            await uhttp.HTTPResponse.not_found(writer)
-
-        await close_streams(writer)
+        except (OSError, HTTPError) as e:
+            usys.print_exception(e)
+        except Exception:
+            await uhttp.HTTPResponse.internal_server_error(writer)
+        finally:
+            await close_streams(writer)
 
     @staticmethod
     async def handle_http_index(req: uhttp.HTTPRequest, writer: asyncio.StreamWriter):

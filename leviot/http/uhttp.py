@@ -2,7 +2,7 @@ import sys
 
 import micropython
 
-from leviot import VERSION
+from leviot import VERSION, ulog
 
 _status_messages = {
     101: "Switching Protocols",
@@ -14,6 +14,12 @@ _status_messages = {
     406: "Not Acceptable",
     500: "Internal Server Error",
 }
+
+log = ulog.Logger("uhttp")
+
+
+class HTTPError(Exception):
+    pass
 
 
 class HTTPRequest:
@@ -56,9 +62,16 @@ class HTTPRequest:
 
     @classmethod
     async def parse(cls, reader) -> 'HTTPRequest':
-        split = (await reader.readline()).decode().strip().split(' ', 2)
-        method = split[0]
-        path = split[1]
+        line = (await reader.readline()).decode().strip()
+        if not line:
+            raise HTTPError("Empty request")
+        split = line.split(' ', 2)
+        try:
+            method = split[0]
+            path = split[1]
+        except IndexError as e:
+            log.e("Invalid HTTP request string: " + line)
+            raise HTTPError(str(e))
 
         path, query, segment = cls._parse_path(path)
 
