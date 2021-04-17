@@ -2,6 +2,7 @@ class StateTracker:
     power = False
     lock = False
     speed = 1
+    prev_speed = 1
     timer = False
     timer_deadline = None
     lights = True

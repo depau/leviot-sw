@@ -75,6 +75,8 @@ homie_autodiscovery = True
 private_nets_only = True
 
 ## Touch pads configuration
+# Touchpad press threshold. Note: the value decreases when a finger is nearby.
+# Set to -1 to auto-calibrate at startup, but make sure you don't touch it during startup
 tp_threshold = 480
 
 ## CPU frequency "scaling"

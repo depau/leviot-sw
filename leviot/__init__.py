@@ -1,17 +1,16 @@
 VERSION = "0.1"
 
-import esp
 import esp32
+import machine
 import uasyncio
 import usys
 import utime
-import machine
 from machine import Pin, Signal
 
+from leviot import conf
 from leviot import network, constants, ulog
 from leviot.controller import LevIoT
 from leviot.extgpio import gpio
-from leviot import conf
 
 log = ulog.Logger("init")
 
@@ -67,6 +66,13 @@ def main():
         log.e(e)
         usys.print_exception(e)
     finally:
+        # noinspection PyBroadException
+        try:
+            # noinspection PyUnboundLocalVariable
+            leviot.stop()
+        except Exception:
+            pass
+
         log.i("Safely shutting down")
         # Turn everything off
         sr_outen = Signal(Pin(constants.PIN_SR_OUTEN, Pin.OUT), invert=True)

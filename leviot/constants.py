@@ -12,6 +12,9 @@ TOUCHPADS = {
     "TIMER": const(15),
 }
 
+TOUCHPADS_POLL_INTERVAL_MS = 50
+TOUCHPAD_HOLD_TIMEOUT_MS = 3000
+
 # Shift registers
 PIN_SR_DS = const(18)
 PIN_SR_CLK = const(19)
@@ -60,3 +63,4 @@ ALL_SR_LEDS = const(
     1 << LED_V1 | 1 << LED_V2 | 1 << LED_V3 | 1 << LED_2H | 1 << LED_4H | 1 << LED_6H | 1 << LED_8H
     | 1 << LED_FAN | 1 << LED_POWER | 1 << LED_NIGHT | 1 << LED_LOCK | 1 << LED_TIMER
 )
+
