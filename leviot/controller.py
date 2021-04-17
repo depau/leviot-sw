@@ -1,19 +1,27 @@
 import uasyncio
 
-from leviot import constants
+from leviot import constants, conf, ulog
 from leviot.extgpio import gpio
 from leviot.http.server import HttpServer
+from leviot.mqtt.controller import MQTTController
 from leviot.state import StateTracker
 from leviot.usage_timer import usage
 
+log = ulog.Logger("controller")
 
 class LevIoT:
     def __init__(self):
         self.httpd = HttpServer(self)
+        if conf.mqtt_enabled:
+            self.mqtt = MQTTController(self)
+        self.loop = uasyncio.get_event_loop()
 
     async def mainloop(self):
         await self.update_leds()
         await self.httpd.serve()
+        if conf.mqtt_enabled:
+            await self.mqtt.start()
+
         usage.notify_poweroff()
 
         while True:
@@ -36,9 +44,12 @@ class LevIoT:
         gpio.value(constants.LED_FILTER, StateTracker.filter_out)
 
     async def set_power(self, on: bool):
-        if on == StateTracker.power:
-            return
         StateTracker.power = on
+
+        if conf.mqtt_enabled:
+            self.loop.create_task(self.mqtt.notify_power())
+
+        log.i("Set power to {}".format(on))
 
         if on:
             # Kickstart fan asynchronously
@@ -49,6 +60,7 @@ class LevIoT:
                 await self.set_fan_speed(speed)
 
             uasyncio.get_event_loop().create_task(kickstart_fan())
+            usage.notify_poweron()
 
         else:
             with gpio:
@@ -58,11 +70,18 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL3, False)
                 await self.update_leds()
 
+            usage.notify_poweron()
+
     async def set_fan_speed(self, speed: int):
         if not 0 <= speed <= 3:
             raise ValueError("Fan speed must be within 0 and 3")
 
         StateTracker.speed = speed
+
+        log.i("Set speed to {}".format(speed))
+
+        if conf.mqtt_enabled:
+            self.loop.create_task(self.mqtt.notify_speed())
 
         if not StateTracker.power:
             return

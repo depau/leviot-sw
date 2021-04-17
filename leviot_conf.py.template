@@ -36,25 +36,38 @@ http_listen = "0.0.0.0"
 http_port = 80
 http_basic_auth = "user:pass"  # None to disable
 
+
 # MQTT configuration
+mqtt_enabled = False
+
 mqtt_config = {
-    'client_id':     b"leviot_" + hexlify(unique_id()),
-    'server':        None,
-    'port':          0,
-    'user':          '',
-    'password':      '',
-    'keepalive':     60,
+    'client_id': b"leviot_" + hexlify(unique_id()),
+    'server': None,
+    'port': 0,
+    'user': '',
+    'password': '',
+    'keepalive': 60,
     'ping_interval': 0,
-    'ssl':           False,
-    'ssl_params':    {},
+    'ssl': False,
+    'ssl_params': {},
     'response_time': 10,
-    'clean_init':    True,
-    'clean':         True,
-    'max_repubs':    4,
-    'will':          None,
-    'subs_cb':       lambda *_: None
+    'clean_init': True,
+    'clean': True,
+    'max_repubs': 4,
 }
 
+# Topic prefix prepended to all topics
+mqtt_prefix = "leviot"
+
+# Topic identifier for this device
+# Must comply with the homie topic id specification: https://homieiot.github.io/specification/#topic-ids
+mqtt_identifier = "air-purifier"
+
+# Friendly device name for Homie
+homie_friendly_name = "Levoit Air Purifier"
+
+# Enable Homie autodiscovery protocol.
+# Status topic will still follow the Homie specification even if disabled.
 homie_autodiscovery = True
 
 ## Firewall configuration

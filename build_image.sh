@@ -94,6 +94,7 @@ msg "mpy-cross"
 
 msg "leviot module"
 [ -d "ports/$port/modules/leviot" ] && rm -Rf "ports/$port/modules/leviot"
+[ -d "ports/$port/modules/mqtt_as" ] && rm -Rf "ports/$port/modules/mqtt_as"
 #[ -d "ports/$port/build-$board/frozen_mpy" ] && rm -Rf "ports/$port/build-$board/frozen_mpy"
 # MicroPython > 1.14 broke makefiles and it won't notice changes in modules
 [ -d "ports/$port/build-$board" ] && rm -Rf "ports/$port/build-$board"

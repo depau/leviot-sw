@@ -26,13 +26,11 @@ gc.collect()
 from sys import platform
 
 # Default short delay for good SynCom throughput (avoid sleep(0) with SynCom).
+_DEFAULT_MS = const(20)
+_SOCKET_POLL_DELAY = const(5)
 
 # Legitimate errors while waiting on a socket. See uasyncio __init__.py open_connection().
-if platform == 'esp32' or platform == 'esp32_LoBo':
-    # https://forum.micropython.org/viewtopic.php?f=16&t=3608&p=20942#p20942
-    pass
-else:
-    BUSY_ERRORS = [EINPROGRESS, ETIMEDOUT]
+BUSY_ERRORS = [EINPROGRESS, ETIMEDOUT]
 
 ESP8266 = platform == 'esp8266'
 ESP32 = platform == 'esp32'
