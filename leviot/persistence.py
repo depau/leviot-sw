@@ -171,12 +171,14 @@ class Persistence:
 
     # This is async so it can be scheduled in the asyncio event loop
     async def track(self):
-        self._persist_settings()
+        changed = self._persist_settings()
         if StateTracker.power:
             delta = time() - self.last_update
             if delta >= LIFETIME_UPDATE_INTERVAL_SEC:
                 self._persist_lifetime()
-        self._commit()
+                changed = True
+        if changed:
+            self._commit()
 
 
 persistence = Persistence()
