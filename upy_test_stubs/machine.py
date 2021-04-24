@@ -12,13 +12,15 @@ class Pin:
         self.invert = invert
 
     def on(self):
-        print(f"STUB: machine.Pin{self.args}.on() invert {self.invert}")
+        #print(f"STUB: machine.Pin{self.args}.on() invert {self.invert}")
+        pass
 
     def off(self):
-        print(f"STUB: machine.Pin{self.args}.off() invert {self.invert}")
+        #print(f"STUB: machine.Pin{self.args}.off() invert {self.invert}")
+        pass
 
     def value(self, *a):
-        print(f"STUB: machine.Pin{self.args}.value{a} invert {self.invert}")
+        #print(f"STUB: machine.Pin{self.args}.value{a} invert {self.invert}")
         if self.args[0] == 0:
             return 1
         return 0
