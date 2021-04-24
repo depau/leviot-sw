@@ -35,6 +35,7 @@ class NVS:
         v = self.nvs.get(key, None)
         if v is None:
             raise OSError
+        return v
 
     def commit(self):
         print(f"NVS commit {self.ns}")
