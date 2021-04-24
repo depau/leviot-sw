@@ -50,6 +50,14 @@ class UART:
         print(f"STUB: machine.UART,deinit()")
 
 
+class TouchPad:
+    def __init__(self, pin: Pin):
+        print(f"STUB: machine.TouchPad({pin})")
+
+    def read(self):
+        return 100
+
+
 def freq(new_clock, **kw):
     print("OVERCLOCCCKKKK OMH SUCH SPEED VERY FAST {}".format(new_clock))
 
