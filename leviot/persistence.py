@@ -92,7 +92,7 @@ class Persistence:
             self._relative_filter_lifetime = self.lifetime
             self.filter_install = self.lifetime
             self.last_dust = 0
-            self.nvs(FILTER_LAST_DUST, self.last_dust)
+            self.nvs.set_i32(FILTER_LAST_DUST, self.last_dust)
             self._persist_settings()
             self._persist_lifetime()
             self._commit()
@@ -156,6 +156,7 @@ class Persistence:
         if self.replacement_due:
             self._persist_lifetime()
             self.last_dust = 0
+            self.nvs.set_i32(FILTER_LAST_DUST, self.last_dust)
             self._relative_filter_lifetime = 0
             self._persist_lifetime()
         else:
