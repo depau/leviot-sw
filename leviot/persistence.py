@@ -71,7 +71,8 @@ class Persistence:
         self._prev_settings = 0
         self._lifetime = 0
         self._relative_filter_lifetime = 0
-        self._last_persist_settings = time() - USER_ACTION_TIMEOUT_SEC
+        self._last_persist_settings_time = time() - USER_ACTION_TIMEOUT_SEC
+        self._last_not_presisted_settings = 0
 
         try:
             _settings = self.nvs.get_i32(DEVICE_SETTINGS)
@@ -98,9 +99,6 @@ class Persistence:
             self._commit()
 
     def _persist_settings(self) -> bool:
-        if time() - self._last_persist_settings < USER_ACTION_TIMEOUT_SEC:
-            return False
-
         _settings = 0
         _settings |= 1 << BIT_POWER if StateTracker.power else 0
         _settings |= 1 << BIT_LIGHTS if StateTracker.lights else 0
@@ -111,7 +109,14 @@ class Persistence:
         _settings |= (StateTracker.timer_left & BMASK_TIMER_LEFT << BMASK_TIMER_LEFT) if StateTracker.timer_left else 0
 
         if _settings != self._prev_settings:
-            self._last_persist_settings = time()
+            # Do not commit if user is having fun with buttons
+            if time() - self._last_persist_settings_time < USER_ACTION_TIMEOUT_SEC:
+                if _settings != self._last_not_presisted_settings:
+                    self._last_persist_settings_time = time()
+                self._last_not_presisted_settings = _settings
+                return False
+
+            self._last_persist_settings_time = time()
             self.nvs.set_i32(DEVICE_SETTINGS, _settings)
             self._prev_settings = _settings
             return True
