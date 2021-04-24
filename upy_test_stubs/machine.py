@@ -55,7 +55,7 @@ class TouchPad:
         print(f"STUB: machine.TouchPad({pin})")
 
     def read(self):
-        return 100
+        return 10000
 
 
 def freq(new_clock, **kw):
