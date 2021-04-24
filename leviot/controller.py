@@ -89,7 +89,7 @@ class LevIoT:
             gpio.value(constants.LED_V2, StateTracker.speed == 2 and StateTracker.power)
             gpio.value(constants.LED_V3, StateTracker.speed == 3 and StateTracker.power)
             # TODO: timer
-        gpio.value(constants.LED_FILTER, StateTracker.filter_out)
+        gpio.value(constants.LED_FILTER, persistence.dusting_due)
 
     async def set_power(self, on: bool):
         StateTracker.power = on
