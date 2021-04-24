@@ -84,7 +84,7 @@ def qos_check(qos):
 # Exceptions from connectivity failures are handled by MQTTClient subclass.
 class MQTT_base:
     REPUB_COUNT = 0  # TEST
-    DEBUG = True
+    DEBUG = False
 
     def __init__(self, config):
         # MQTT config
