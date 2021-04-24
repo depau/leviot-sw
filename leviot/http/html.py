@@ -15,7 +15,7 @@ base = """<!DOCTYPE html>
 """
 
 index = base.format(
-    title=conf.hostname + " - Basic comtrol",
+    title=conf.hostname + " - Basic control",
     content="""
     <div>
         <ul>
