@@ -6,7 +6,7 @@ from leviot.http.server import HttpServer
 from leviot.mqtt.controller import MQTTController
 from leviot.state import StateTracker
 from leviot.touchpad import touchpads
-from leviot.usage_timer import usage
+from leviot.persistence import persistence
 
 log = ulog.Logger("controller")
 
@@ -31,11 +31,11 @@ class LevIoT:
         if conf.mqtt_enabled:
             await self.mqtt.start()
 
-        usage.notify_poweroff()
+        persistence.notify_poweroff()
 
         while True:
-            await uasyncio.sleep(60)
-            await usage.track()
+            await uasyncio.sleep(1)
+            await persistence.track()
 
     async def touchpad_loop(self):
         lock_hold_t = 0
@@ -108,7 +108,7 @@ class LevIoT:
                 await self.set_fan_speed(speed)
 
             uasyncio.get_event_loop().create_task(kickstart_fan())
-            usage.notify_poweron()
+            persistence.notify_poweron()
 
         else:
             with gpio:
@@ -118,7 +118,7 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL3, False)
                 await self.update_leds()
 
-            usage.notify_poweron()
+            persistence.notify_poweron()
 
     async def set_fan_speed(self, speed: int):
         if not 0 <= speed <= 3:
