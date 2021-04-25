@@ -47,12 +47,7 @@ def main():
             return
 
         # Power saving
-        #esp.sleep_type(esp.SLEEP_LIGHT)
         esp32.wake_on_touch(True)
-
-        log.i("Connecting to Wi-Fi")
-        network.up()
-        log.i("Wi-Fi connected")
 
         loop = uasyncio.get_event_loop()
         loop.create_task(network.ensure_up())
