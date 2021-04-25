@@ -137,10 +137,10 @@ class LevIoT:
             gpio.value(constants.LED_6H, 4 * 60 < StateTracker.timer_left <= 6 * 60)
             gpio.value(constants.LED_8H, 6 * 60 < StateTracker.timer_left)
 
-        if persistence.replacement_due or StateTracker.user_maint:
-            gpio.value(constants.LED_FILTER, "blink")
-        else:
-            gpio.value(constants.LED_FILTER, persistence.dusting_due)
+            if persistence.replacement_due or StateTracker.user_maint:
+                gpio.value(constants.LED_FILTER, "blink")
+            else:
+                gpio.value(constants.LED_FILTER, persistence.dusting_due)
 
     async def set_power(self, on: bool):
         StateTracker.power = on
