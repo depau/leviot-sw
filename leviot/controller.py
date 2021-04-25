@@ -26,6 +26,11 @@ class LevIoT:
         self.loop.create_task(self.touchpad_loop())
 
         await self.update_leds()
+
+        if StateTracker.power:
+            StateTracker.power = False
+            await self.set_power(True)
+
         await self.httpd.serve()
 
         if conf.mqtt_enabled:
