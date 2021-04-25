@@ -4,9 +4,9 @@ from leviot import constants, conf, ulog
 from leviot.extgpio import gpio
 from leviot.http.server import HttpServer
 from leviot.mqtt.controller import MQTTController
+from leviot.persistence import persistence
 from leviot.state import StateTracker
 from leviot.touchpad import touchpads
-from leviot.persistence import persistence
 
 log = ulog.Logger("controller")
 
@@ -30,17 +30,35 @@ class LevIoT:
         if StateTracker.power:
             StateTracker.power = False
             await self.set_power(True)
+            persistence.notify_poweron()
+        else:
+            persistence.notify_poweroff()
 
         await self.httpd.serve()
 
         if conf.mqtt_enabled:
             await self.mqtt.start()
 
-        persistence.notify_poweroff()
-
         while True:
             await uasyncio.sleep(1)
             await persistence.track()
+
+    def set_timer(self, time: int):
+        timer_running = StateTracker.timer_left > 0
+        StateTracker.timer_left = time
+        if not timer_running and time > 0:
+            self.loop.create_task(self.timer_loop())
+
+    async def timer_loop(self):
+        if not StateTracker.power:
+            await self.set_power(True)
+
+        while StateTracker.timer_left > 0:
+            await uasyncio.sleep(60)
+            StateTracker.timer_left -= 1
+
+        if StateTracker.power:
+            await self.set_power(False)
 
     async def touchpad_loop(self):
         lock_hold_t = 0
@@ -76,8 +94,13 @@ class LevIoT:
                     elif pad == "LIGHT":
                         await self.set_lights(not StateTracker.lights)
 
+                    elif pad == "TIMER":
+                        newtime = StateTracker.timer_left + 2 * 60
+                        if newtime > 9 * 60:
+                            newtime = 0
+                        self.set_timer(newtime)
+
                 # "FILTER"
-                # "TIMER"
 
             await uasyncio.sleep_ms(constants.TOUCHPADS_POLL_INTERVAL_MS)
 
@@ -93,7 +116,13 @@ class LevIoT:
             gpio.value(constants.LED_V1, StateTracker.speed == 1 and StateTracker.power)
             gpio.value(constants.LED_V2, StateTracker.speed == 2 and StateTracker.power)
             gpio.value(constants.LED_V3, StateTracker.speed == 3 and StateTracker.power)
-            # TODO: timer
+
+            gpio.value(constants.LED_TIMER, StateTracker.timer_left > 0)
+            gpio.value(constants.LED_2H, StateTracker.timer_left <= 2 * 60)
+            gpio.value(constants.LED_4H, 2 * 60 < StateTracker.timer_left <= 4 * 60)
+            gpio.value(constants.LED_6H, 4 * 60 < StateTracker.timer_left <= 6 * 60)
+            gpio.value(constants.LED_8H, 6 * 60 < StateTracker.timer_left)
+
         gpio.value(constants.LED_FILTER, persistence.dusting_due)
 
     async def set_power(self, on: bool):
@@ -116,6 +145,7 @@ class LevIoT:
             persistence.notify_poweron()
 
         else:
+            StateTracker.timer_left = 0
             with gpio:
                 gpio.value(constants.FAN_CTL0, False)
                 gpio.value(constants.FAN_CTL1, False)
