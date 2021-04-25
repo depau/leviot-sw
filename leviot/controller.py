@@ -62,6 +62,7 @@ class LevIoT:
 
     async def touchpad_loop(self):
         lock_hold_t = 0
+        filter_hold_t = 0
 
         while not self.should_stop:
             pressed = touchpads.poll()
@@ -72,7 +73,22 @@ class LevIoT:
                 lock_hold_t += constants.TOUCHPADS_POLL_INTERVAL_MS
                 if lock_hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
                     lock_hold_t = 0
+
                     await self.set_lock(not StateTracker.lock)
+
+            if "FILTER" not in pressed:
+                filter_hold_t = 0
+            elif not StateTracker.lock:
+                filter_hold_t += constants.TOUCHPADS_POLL_INTERVAL_MS
+                if filter_hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
+                    filter_hold_t = 0
+
+                    if persistence.replacement_due or persistence.dusting_due or StateTracker.user_maint:
+                        persistence.notify_maintenance()
+                    else:
+                        StateTracker.user_maint = not StateTracker.user_maint
+                    with gpio:
+                        await self.update_leds()
 
             if not StateTracker.lock:
                 for pad in pressed:
@@ -100,8 +116,6 @@ class LevIoT:
                             newtime = 0
                         self.set_timer(newtime)
 
-                # "FILTER"
-
             await uasyncio.sleep_ms(constants.TOUCHPADS_POLL_INTERVAL_MS)
 
     async def update_leds(self):
@@ -123,7 +137,10 @@ class LevIoT:
             gpio.value(constants.LED_6H, 4 * 60 < StateTracker.timer_left <= 6 * 60)
             gpio.value(constants.LED_8H, 6 * 60 < StateTracker.timer_left)
 
-        gpio.value(constants.LED_FILTER, persistence.dusting_due)
+        if persistence.replacement_due or StateTracker.user_maint:
+            gpio.value(constants.LED_FILTER, "blink")
+        else:
+            gpio.value(constants.LED_FILTER, persistence.dusting_due)
 
     async def set_power(self, on: bool):
         StateTracker.power = on
