@@ -64,3 +64,12 @@ ALL_SR_LEDS = const(
     | 1 << LED_FAN | 1 << LED_POWER | 1 << LED_NIGHT | 1 << LED_LOCK | 1 << LED_TIMER
 )
 
+TOUCHPAD_LED_MAPPING = {
+    "POWER": LED_POWER,
+    "TIMER": LED_TIMER,
+    "NIGHT": LED_NIGHT,
+    "FAN": LED_FAN,
+    "LOCK": LED_LOCK,
+    "FILTER": LED_FILTER,
+    "LIGHT": LED_8H,
+}
