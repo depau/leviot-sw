@@ -25,20 +25,31 @@ except:
 
 
 # noinspection PyPep8Naming
-class Run:
+class Command:
+    def __init__(self, callback):
+        self.callback = callback
+
     def __repr__(self):
-        leviot.main()
+        self.callback()
         return ""
 
     def __str__(self):
-        leviot.main()
+        self.callback()
         return ""
 
     def __call__(self):
-        leviot.main()
+        self.callback()
 
 
-builtins.run = Run()
+def _wifi_up():
+    from leviot.network import up
+    import uasyncio
+    loop = uasyncio.get_event_loop()
+    loop.run_until_complete(up())
+
+
+builtins.run = Command(leviot.main)
+builtins.netup = Command(_wifi_up)
 
 try:
     from leviot_conf import autoboot
@@ -49,6 +60,6 @@ except ImportError:
 if autoboot:
     leviot.main()
 
-print("Type 'run' to re-start the program.")
+print("Type 'run' to re-start the program, 'netup' to turn on and connect to Wi-Fi.")
 print("You can run your code before startup by adding a 'user_boot.py' script.")
 print()
