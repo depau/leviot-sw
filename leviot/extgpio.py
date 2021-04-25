@@ -1,5 +1,6 @@
 import micropython
-from machine import Pin, Signal
+import uasyncio
+from machine import Pin, Signal, PWM
 
 from leviot import constants
 
@@ -47,8 +48,13 @@ class GPIOManager:
     @micropython.native
     def commit(self) -> None:
         if self.filter_led_cur != self.filter_led_staging:
-            self.s_filter_led.value(self.filter_led_staging)
             self.filter_led_cur = self.filter_led_staging
+
+            if self.filter_led_staging == "blink":
+                loop = uasyncio.get_event_loop()
+                loop.create_task(self.blink_loop())
+            else:
+                self.s_filter_led.value(self.filter_led_staging)
 
         if self.sr_cur == self.sr_staging:
             return
@@ -59,7 +65,7 @@ class GPIOManager:
         pulse(self.sr_latch)
         self.sr_cur = self.sr_staging
 
-    def value(self, bit: int, value: bool):
+    def value(self, bit: int, value):
         if bit == constants.LED_FILTER:
             self.filter_led_staging = value
             return
@@ -92,5 +98,18 @@ class GPIOManager:
         else:
             self.sr_staging = 0
 
+    async def blink_loop(self):
+        pwm = PWM(self.s_filter_led)
+        while self.filter_led_cur == "blink":
+            increment = 1
+            duty = 0
+            while self.filter_led_cur == "blink" and 0 <= duty <= 1023:
+                duty += increment
+                pwm.duty(duty)
+                await uasyncio.sleep_ms(3)
+            increment *= -1
+
+        pwm.deinit()
+        self.s_filter_led.value(self.filter_led_cur)
 
 gpio = GPIOManager()
