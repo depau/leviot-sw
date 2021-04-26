@@ -1,4 +1,5 @@
 import uasyncio
+import utime
 
 from leviot import constants, conf, ulog
 from leviot.extgpio import gpio
@@ -43,10 +44,14 @@ class LevIoT:
             await uasyncio.sleep(1)
             await persistence.track()
 
-    def set_timer(self, time: int):
+    async def set_timer(self, time: int):
         log.i("Set timer to {} minutes".format(time))
         timer_running = StateTracker.timer_left > 0
         StateTracker.timer_left = time
+
+        if conf.mqtt_enabled:
+            await self.mqtt.notify_timer()
+
         if not timer_running and time > 0:
             self.loop.create_task(self.timer_loop())
 
@@ -54,10 +59,16 @@ class LevIoT:
         if not StateTracker.power:
             await self.set_power(True)
 
+        t1 = t2 = 0
         while StateTracker.timer_left > 0:
-            await uasyncio.sleep(60)
+            await uasyncio.sleep_ms(60 * 1000 - (t2 - t1))
+            t1 = utime.time_ns() // 1000*1000
             StateTracker.timer_left -= 1
             log.i("Timer {} minutes left".format(StateTracker.timer_left))
+
+            if conf.mqtt_enabled:
+                await self.mqtt.notify_timer()
+            t2 = utime.time_ns() // 1000*1000
 
         if StateTracker.power:
             await self.set_power(False)
@@ -117,7 +128,7 @@ class LevIoT:
                         newtime = StateTracker.timer_left + 2 * 60
                         if newtime > 9 * 60:
                             newtime = 0
-                        self.set_timer(newtime)
+                        await self.set_timer(newtime)
 
             await uasyncio.sleep_ms(constants.TOUCHPADS_POLL_INTERVAL_MS)
 

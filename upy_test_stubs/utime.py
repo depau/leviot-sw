@@ -6,6 +6,8 @@ _time = time
 def time():
     return int(_time())
 
+def time_ns():
+    return int(_time() * (1000 ** 3))
 
 def sleep_ms(val):
     sleep(val / 1000.)
