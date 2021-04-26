@@ -57,6 +57,8 @@ class HttpServer:
                     await self.handle_priv_set_power(writer, True)
                 elif req.path == "/priv-api/off":
                     await self.handle_priv_set_power(writer, False)
+                elif req.path == "/priv-api/timer":
+                    await self.handle_priv_set_timer(req, writer)
                 else:
                     await uhttp.HTTPResponse.not_found(writer)
 
@@ -77,7 +79,8 @@ class HttpServer:
             200,
             body=html.index.format(
                 power='ON' if StateTracker.power else "OFF",
-                speed=FAN_SPEED_MAP[StateTracker.speed]
+                speed=FAN_SPEED_MAP[StateTracker.speed],
+                timer=StateTracker.timer_left
             ),
             headers={'Content-Type': 'text/html;charset=utf-8'}
         ).write_into(writer)
@@ -101,5 +104,18 @@ class HttpServer:
         except Exception as e:
             log.e(e)
             return await uhttp.HTTPResponse.internal_server_error(writer)
+
+        await uhttp.HTTPResponse.see_other(writer, "/")
+
+    async def handle_priv_set_timer(self, req: uhttp.HTTPRequest, writer: asyncio.StreamWriter):
+        timer_str = req.query.get("minutes", None)
+        if not timer_str:
+            return await uhttp.HTTPResponse.bad_request(writer)
+        try:
+            timer = int(timer_str)
+            self.leviot.set_timer(timer)
+        except Exception as e:
+            print(e)
+            return await uhttp.HTTPResponse.bad_request(writer)
 
         await uhttp.HTTPResponse.see_other(writer, "/")
