@@ -1,7 +1,9 @@
 import uasyncio
 
+import datetime
 from leviot import conf, ulog
 from leviot.state import StateTracker
+from leviot.utils import iso8601_duration
 from mqtt_as.timeout import MQTTClient
 
 log = ulog.Logger("mqtt")
@@ -39,6 +41,8 @@ class MQTTController:
         log.i("MQTT connected")
         await self.client.subscribe(self.base_topic + "/fan/speed/set")
         await self.client.subscribe(self.base_topic + "/fan/power/set")
+        await self.client.subscribe(self.base_topic + "/timer/minutes/set")
+        await self.client.subscribe(self.base_topic + "/timer/iso8601/set")
 
         await self.client.publish(self.state_topic, "init", retain=True, timeout=60)
 
@@ -46,27 +50,46 @@ class MQTTController:
             # Device attributes
             await self.client.publish(self.base_topic + "/$homie", "4.0.0", retain=True, timeout=60)
             await self.client.publish(self.base_topic + "/$name", conf.homie_friendly_name, retain=True, timeout=60)
-            await self.client.publish(self.base_topic + "/$nodes", "fan", retain=True, timeout=60)
+            await self.client.publish(self.base_topic + "/$nodes", "fan,timer", retain=True, timeout=60)
             await self.client.publish(self.base_topic + "/$implementation", "LevIoT Snek", retain=True, timeout=60)
 
-            # Fan speed node attributes
+            ## Fan speed node attributes
             node = self.base_topic + "/fan"
             await self.client.publish(node + "/$name", "Fan", retain=True, timeout=60)
             await self.client.publish(node + "/$type", "Air purifier", retain=True, timeout=60)
             await self.client.publish(node + "/$properties", "speed,power", retain=True, timeout=60)
 
-            # Power property attributes
+            ### Power property attributes
             prop = node + "/power"
             await self.client.publish(prop + "/$name", "Power", retain=True, timeout=60)
             await self.client.publish(prop + "/$datatype", "boolean", retain=True, timeout=60)
             await self.client.publish(prop + "/$settable", "true", retain=True, timeout=60)
 
-            # Fan speed property attributes
+            ### Fan speed property attributes
             prop = node + "/speed"
             await self.client.publish(prop + "/$name", "Fan speed", retain=True, timeout=60)
             await self.client.publish(prop + "/$datatype", "integer", retain=True, timeout=60)
             await self.client.publish(prop + "/$settable", "true", retain=True, timeout=60)
             await self.client.publish(prop + "/$format", "0:3", retain=True, timeout=60)
+
+            ## Timer node attributes
+            node = self.base_topic + "/timer"
+            await self.client.publish(node + "/$name", "Timer", retain=True, timeout=60)
+            await self.client.publish(node + "/$type", "Air purifier", retain=True, timeout=60)
+            await self.client.publish(node + "/$properties", "minutes,iso8601", retain=True, timeout=60)
+
+            ### Timer minutes property attributes
+            prop = node + "/minutes"
+            await self.client.publish(prop + "/$name", "Timer minutes", retain=True, timeout=60)
+            await self.client.publish(prop + "/$datatype", "integer", retain=True, timeout=60)
+            await self.client.publish(prop + "/$settable", "true", retain=True, timeout=60)
+            await self.client.publish(prop + "/$format", "minutes", retain=True, timeout=60)
+
+            ### Timer iso8601 property attributes
+            prop = node + "/iso8601"
+            await self.client.publish(prop + "/$name", "Timer duration", retain=True, timeout=60)
+            await self.client.publish(prop + "/$datatype", "duration", retain=True, timeout=60)
+            await self.client.publish(prop + "/$settable", "true", retain=True, timeout=60)
 
         await self.notify_power()
         await self.notify_speed()
@@ -93,9 +116,27 @@ class MQTTController:
                 raise ValueError("Invalid MQTT fan speed: {}".format(speed))
             await self.leviot.set_fan_speed(speed)
 
+        elif topic.endswith("/timer/minutes/set"):
+            mins = int(payload)
+            if mins < 0:
+                raise ValueError("Invalid MQTT negative timer minutes: {}".format(mins))
+            await self.leviot.set_timer(mins)
+
+        elif topic.endswith("/timer/iso8601/set"):
+            mins = iso8601_duration.parse_duration(payload.decode()).total_seconds() // 60
+            if mins < 0:
+                raise ValueError("Invalid MQTT negative timer time: {}".format((payload.decode())))
+            await self.leviot.set_timer(mins)
+
     async def notify_power(self):
         await self.client.publish(self.base_topic + "/fan/power", str(StateTracker.power).lower(), retain=True,
                                   timeout=60)
 
     async def notify_speed(self):
         await self.client.publish(self.base_topic + "/fan/speed", str(StateTracker.speed), retain=True, timeout=60)
+
+    async def notify_timer(self):
+        await self.client.publish(self.base_topic + "/timer/minutes", str(StateTracker.timer_left), retain=True, timeout=60)
+        await self.client.publish(
+            self.base_topic + "/timer/iso8601",
+            iso8601_duration.format_duration(datetime.timedelta(minutes=StateTracker.timer_left)), retain=True, timeout=60)

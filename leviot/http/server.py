@@ -113,7 +113,7 @@ class HttpServer:
             return await uhttp.HTTPResponse.bad_request(writer)
         try:
             timer = int(timer_str)
-            self.leviot.set_timer(timer)
+            await self.leviot.set_timer(timer)
         except Exception as e:
             print(e)
             return await uhttp.HTTPResponse.bad_request(writer)
