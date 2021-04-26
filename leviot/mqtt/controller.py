@@ -1,9 +1,8 @@
 import uasyncio
 
-import datetime
 from leviot import conf, ulog
 from leviot.state import StateTracker
-from leviot.utils import iso8601_duration
+from leviot.utils import iso8601
 from mqtt_as.timeout import MQTTClient
 
 log = ulog.Logger("mqtt")
@@ -123,7 +122,7 @@ class MQTTController:
             await self.leviot.set_timer(mins)
 
         elif topic.endswith("/timer/iso8601/set"):
-            mins = iso8601_duration.parse_duration(payload.decode()).total_seconds() // 60
+            mins = iso8601.duration_to_number(payload.decode()) // 60
             if mins < 0:
                 raise ValueError("Invalid MQTT negative timer time: {}".format((payload.decode())))
             await self.leviot.set_timer(mins)
@@ -139,4 +138,4 @@ class MQTTController:
         await self.client.publish(self.base_topic + "/timer/minutes", str(StateTracker.timer_left), retain=True, timeout=60)
         await self.client.publish(
             self.base_topic + "/timer/iso8601",
-            iso8601_duration.format_duration(datetime.timedelta(minutes=StateTracker.timer_left)), retain=True, timeout=60)
+            iso8601.number_to_duration(StateTracker.timer_left * 60), retain=True, timeout=60)
