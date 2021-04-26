@@ -44,6 +44,7 @@ class LevIoT:
             await persistence.track()
 
     def set_timer(self, time: int):
+        log.i("Set timer to {} minutes".format(time))
         timer_running = StateTracker.timer_left > 0
         StateTracker.timer_left = time
         if not timer_running and time > 0:
@@ -56,9 +57,11 @@ class LevIoT:
         while StateTracker.timer_left > 0:
             await uasyncio.sleep(60)
             StateTracker.timer_left -= 1
+            log.i("Timer {} minutes left".format(StateTracker.timer_left))
 
         if StateTracker.power:
             await self.set_power(False)
+        log.i("Timer done")
 
     async def touchpad_loop(self):
         lock_hold_t = 0
