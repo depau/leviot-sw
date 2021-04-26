@@ -1,3 +1,4 @@
+import datetime
 import os
 import shelve
 import tempfile
@@ -42,5 +43,8 @@ class NVS:
 
         with shelve.open(self.path) as shelf:
             shelf["current"] = self.nvs
-            shelf["history"][time.time()] = self.transaction
+            # Required due to the way shelve tracks changes
+            history = shelf["history"]
+            history[datetime.datetime.now().strftime("%Y-%m-%dT%H:%M:%S.%f")] = self.transaction
+            shelf["history"] = history
             self.transaction = {}
