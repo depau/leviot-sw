@@ -83,8 +83,6 @@ class Persistence:
             StateTracker.lock = (_settings >> BIT_LOCK) & 1 == 1
             StateTracker.user_maint = (_settings >> BIT_USERMAINT) & 1 == 1
             StateTracker.timer_left = (_settings >> BIT_TIMER_LEFT) & BMASK_TIMER_LEFT
-            if StateTracker.timer_left == 0:
-                StateTracker.timer_left = None
 
             self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
             self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
@@ -104,9 +102,9 @@ class Persistence:
         _settings |= 1 << BIT_LIGHTS if StateTracker.lights else 0
         _settings |= 1 << BIT_LOCK if StateTracker.lock else 0
         _settings |= 1 << BIT_USERMAINT if StateTracker.user_maint else 0
-        _settings |= StateTracker.speed & BMASK_SPEED << BIT_SPEED
-        _settings |= StateTracker.prev_speed & BMASK_SPEED << BIT_PREV_SPEED
-        _settings |= (StateTracker.timer_left & BMASK_TIMER_LEFT << BMASK_TIMER_LEFT) if StateTracker.timer_left else 0
+        _settings |= (StateTracker.speed & BMASK_SPEED) << BIT_SPEED
+        _settings |= (StateTracker.prev_speed & BMASK_SPEED) << BIT_PREV_SPEED
+        _settings |= ((StateTracker.timer_left & BMASK_TIMER_LEFT) << BIT_TIMER_LEFT) if StateTracker.timer_left else 0
 
         if _settings != self._prev_settings:
             # Do not commit if user is having fun with buttons

@@ -3,6 +3,6 @@ class StateTracker:
     lock = False
     speed = 1
     prev_speed = 1
-    timer_left = None
+    timer_left = 0
     lights = True
     user_maint = False
