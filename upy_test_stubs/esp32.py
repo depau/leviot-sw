@@ -11,6 +11,9 @@ def wake_on_touch(flag):
 
 class NVS:
     def __init__(self, namespace):
+        if len(namespace) > 15:
+            raise OSError("NVS namespace key too long")
+
         self.path = os.path.join(tempfile.gettempdir(), namespace + ".shelve")
 
         with shelve.open(self.path) as shelf:
@@ -28,11 +31,15 @@ class NVS:
         self.transaction = {}
 
     def set_i32(self, key, value):
+        if len(key) > 15:
+            raise OSError("NVS key too long")
         print(f"NVS set i32 [{self.ns}] {key}={value}")
         self.transaction[key] = value
         self.nvs[key] = value
 
     def get_i32(self, key):
+        if len(key) > 15:
+            raise OSError("NVS key too long")
         v = self.nvs.get(key, None)
         if v is None:
             raise OSError

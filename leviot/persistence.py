@@ -12,13 +12,13 @@ from leviot.state import StateTracker
 # Considering that this only happens only when the air purifier is actually running and that when it is, a fan is
 # blowing (which effectively cools down the ESP32 chip and extends the flash lifetime, this could be even longer.
 
-DEVICE_NAMESPACE = "leviot"
+DEVICE_NAMESPACE = "LevIoT"
 
 ## Device lifetime in seconds
-DEVICE_LIFETIME = "lifetime"
+DEVICE_LIFETIME = "Lifetime"
 
 ## Setting bits
-DEVICE_SETTINGS = "settings"
+DEVICE_SETTINGS = "Settings"
 
 BIT_SPEED = 0
 BIT_PREV_SPEED = 2
@@ -39,13 +39,13 @@ BMASK_TIMER_LEFT = 0xffff
 # Hopefully MicroPython will add support for 64bit ints for NVS.
 
 # Relative to lifetime, written only on filter replacement
-FILTER_INSTALL_TIME = "filter_install_time"
+FILTER_INSTALL_TIME = "FilterInstTime"
 
 # Last filter dusting time relative to maintenance time
-FILTER_LAST_DUST = "last_dust"
+FILTER_LAST_DUST = "LastDustTime"
 
 # Time for maintenance purposes relative to fan speed, 1 sec @ max speed == 1, 1 sec @ min speed = 1/4
-FILTER_RELATIVE_LIFETIME = "filter_rel_lifetime"
+FILTER_RELATIVE_LIFETIME = "FilterRelLftime"
 
 ## Constants
 
