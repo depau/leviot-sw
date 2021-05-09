@@ -24,11 +24,6 @@ class TouchPads:
             accum += value
             log.i(" - {}: {}".format(name, value))
 
-        if conf.tp_threshold <= 0:
-            avg = accum / len(constants.TOUCHPADS)
-            conf.tp_threshold = avg - 20
-            log.i("Average: {}, threshold set to {}".format(avg, conf.tp_threshold))
-
     def read_all(self):
         for name, tp in self.tp.items():
             yield name, tp.read()
@@ -37,12 +32,12 @@ class TouchPads:
     def poll(self) -> list:
         new = []
         for name, value in self.read_all():
-            if value < conf.tp_threshold and name not in self.debounce:
+            if value < conf.touchpad_calibration_val[name] and name not in self.debounce:
                 new.append(name)
                 # Do not debounce pads that are supposed to be held down
                 if name not in ("FILTER", "LOCK"):
                     self.debounce.add(name)
-            elif value >= conf.tp_threshold and name in self.debounce:
+            elif value >= conf.touchpad_calibration_val[name] and name in self.debounce:
                 self.debounce.remove(name)
         return new
 
@@ -50,10 +45,7 @@ class TouchPads:
         gpio.init()
         print()
         print("Touchpad calibration")
-        all_min = 0xFFFFFFFF
-        all_max = 0
-        all_mid = []
-        all_qmid = []
+        result = {}
 
         print("Tap the pad that blinks (or the closest one) multiple times as you normally would during normal "
               "operation")
@@ -79,19 +71,21 @@ class TouchPads:
             pin_max = max(readings)
             pin_mid = (pin_min + pin_max) // 2
             pin_qmid = int(math.sqrt((pin_min ** 2 + pin_max ** 2) / 2))
-            all_mid.append(pin_mid)
-            all_qmid.append(pin_qmid)
-            if pin_min < all_min:
-                all_min = pin_min
-            if pin_max > all_max:
-                all_max = pin_max
+            pin_rqmid = int(pin_max - pin_qmid + pin_min)
 
-            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid".format(pin_min, pin_max, pin_mid, pin_qmid))
+            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} rqmid".format(pin_min, pin_max, pin_mid, pin_qmid,
+                                                                                    pin_rqmid))
 
-        print()
-        print("All {:>5} min  {:>5} max".format(all_min, all_max))
-        print("All mid values:", all_mid)
-        print("All quadratic mid values:", all_qmid)
+            result[tp] = pin_rqmid
+
+        print("Calibration result: (replace in config to save it)\n")
+        print("touchpad_calibration_val = {")
+        for name, value in result.items():
+            print('    "{}": const({}),'.format(name, value))
+        print("}\n")
+
+        conf.touchpad_calibration_val = result
+        print("Calibration data applied, run with 'run' to test")
 
 
 touchpads = TouchPads()

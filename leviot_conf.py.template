@@ -1,6 +1,7 @@
 from binascii import hexlify
-from machine import unique_id
 
+from machine import unique_id
+from micropython import const
 
 ## Wi-Fi configuration
 
@@ -75,9 +76,16 @@ homie_autodiscovery = True
 private_nets_only = True
 
 ## Touch pads configuration
-# Touchpad press threshold. Note: the value decreases when a finger is nearby.
-# Set to -1 to auto-calibrate at startup, but make sure you don't touch it during startup
-tp_threshold = 480
+# Calibration values, generate with 'cal' command in MicroPython shell
+touchpad_calibration_val = {
+    "FAN": const(200),
+    "FILTER": const(200),
+    "NIGHT": const(200),
+    "LIGHT": const(200),
+    "LOCK": const(200),
+    "POWER": const(200),
+    "TIMER": const(200),
+}
 
 ## CPU frequency "scaling"
 cpu_freq_perf = 240000000
