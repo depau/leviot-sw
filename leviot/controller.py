@@ -62,13 +62,13 @@ class LevIoT:
         t1 = t2 = 0
         while StateTracker.timer_left > 0:
             await uasyncio.sleep_ms(60 * 1000 - (t2 - t1))
-            t1 = utime.time_ns() // 1000*1000
+            t1 = utime.time_ns() // 1000
             StateTracker.timer_left -= 1
             log.i("Timer {} minutes left".format(StateTracker.timer_left))
 
             if conf.mqtt_enabled:
                 await self.mqtt.notify_timer()
-            t2 = utime.time_ns() // 1000*1000
+            t2 = utime.time_ns() // 1000
 
         if StateTracker.power:
             await self.set_power(False)
