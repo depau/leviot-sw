@@ -146,7 +146,7 @@ class LevIoT:
             gpio.value(constants.LED_V3, StateTracker.speed == 3 and StateTracker.power)
 
             gpio.value(constants.LED_TIMER, StateTracker.timer_left > 0)
-            gpio.value(constants.LED_2H, StateTracker.timer_left <= 2 * 60)
+            gpio.value(constants.LED_2H, 0 < StateTracker.timer_left <= 2 * 60)
             gpio.value(constants.LED_4H, 2 * 60 < StateTracker.timer_left <= 4 * 60)
             gpio.value(constants.LED_6H, 4 * 60 < StateTracker.timer_left <= 6 * 60)
             gpio.value(constants.LED_8H, 6 * 60 < StateTracker.timer_left)
