@@ -47,6 +47,7 @@ class TouchPads:
         return new
 
     def calibrate(self):
+        gpio.init()
         print()
         print("Touchpad calibration")
         all_min = 0xFFFFFFFF
