@@ -1,5 +1,6 @@
 import micropython
 import uasyncio
+import utime
 from machine import Pin, Signal, PWM
 
 from leviot import constants
@@ -7,9 +8,7 @@ from leviot import constants
 
 @micropython.native
 def pulse(pin: Signal):
-    # utime.sleep_us(constants.SR_PROP_DELAY_US)
     pin.on()
-    # utime.sleep_us(constants.SR_PROP_DELAY_US)
     pin.off()
 
 
@@ -31,6 +30,9 @@ class GPIOManager:
         self.sr_latch = Signal(Pin(constants.PIN_SR_LATCH, Pin.OUT), invert=False)
         self.sr_clock = Signal(Pin(constants.PIN_SR_CLK, Pin.OUT), invert=False)
         self.sr_outen = Signal(Pin(constants.PIN_SR_OUTEN, Pin.OUT), invert=True)
+        self.sr_clock.off()
+        self.sr_shift.off()
+        self.sr_latch.off()
         self.sr_outen.off()
 
     def __enter__(self):
@@ -59,6 +61,7 @@ class GPIOManager:
         if self.sr_cur == self.sr_staging:
             return
 
+        self.sr_latch.off()
         for bit in range(16):
             self.sr_shift.value((self.sr_staging >> bit) & 1 == 1)
             pulse(self.sr_clock)
