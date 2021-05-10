@@ -78,13 +78,13 @@ private_nets_only = True
 ## Touch pads configuration
 # Calibration values, generate with 'cal' command in MicroPython shell
 touchpad_calibration_val = {
-    "FAN": const(200),
-    "FILTER": const(200),
-    "NIGHT": const(200),
-    "LIGHT": const(200),
-    "LOCK": const(200),
-    "POWER": const(200),
-    "TIMER": const(200),
+    "NIGHT": const(573),
+    "POWER": const(501),
+    "LIGHT": const(459),
+    "FAN": const(600),
+    "FILTER": const(630),
+    "LOCK": const(687),
+    "TIMER": const(427),
 }
 
 ## CPU frequency "scaling"
