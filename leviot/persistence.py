@@ -1,7 +1,7 @@
 import esp32
 from utime import time
 
-from leviot.state import StateTracker
+from leviot.state import state_tracker
 
 # 5x 32bit values are stored into NVS and 3 of them are updated on average every minute. Considering 10.000 erase
 # cycles per flash sector (512 bytes), 125 entries per sector (NVS page) and 32 pages (48 if not building without OTA
@@ -76,13 +76,13 @@ class Persistence:
 
         try:
             _settings = self.nvs.get_i32(DEVICE_SETTINGS)
-            StateTracker.power = (_settings >> BIT_POWER) & 1 == 1
-            StateTracker.speed = (_settings >> BIT_SPEED) & BMASK_SPEED
-            StateTracker.prev_speed = (_settings >> BIT_PREV_SPEED) & BMASK_SPEED
-            StateTracker.lights = (_settings >> BIT_LIGHTS) & 1 == 1
-            StateTracker.lock = (_settings >> BIT_LOCK) & 1 == 1
-            StateTracker.user_maint = (_settings >> BIT_USERMAINT) & 1 == 1
-            StateTracker.timer_left = (_settings >> BIT_TIMER_LEFT) & BMASK_TIMER_LEFT
+            state_tracker.power = (_settings >> BIT_POWER) & 1 == 1
+            state_tracker.speed = (_settings >> BIT_SPEED) & BMASK_SPEED
+            state_tracker.prev_speed = (_settings >> BIT_PREV_SPEED) & BMASK_SPEED
+            state_tracker.lights = (_settings >> BIT_LIGHTS) & 1 == 1
+            state_tracker.lock = (_settings >> BIT_LOCK) & 1 == 1
+            state_tracker.user_maint = (_settings >> BIT_USERMAINT) & 1 == 1
+            state_tracker.timer_left = (_settings >> BIT_TIMER_LEFT) & BMASK_TIMER_LEFT
 
             self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
             self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
@@ -98,13 +98,13 @@ class Persistence:
 
     def _persist_settings(self) -> bool:
         _settings = 0
-        _settings |= 1 << BIT_POWER if StateTracker.power else 0
-        _settings |= 1 << BIT_LIGHTS if StateTracker.lights else 0
-        _settings |= 1 << BIT_LOCK if StateTracker.lock else 0
-        _settings |= 1 << BIT_USERMAINT if StateTracker.user_maint else 0
-        _settings |= (StateTracker.speed & BMASK_SPEED) << BIT_SPEED
-        _settings |= (StateTracker.prev_speed & BMASK_SPEED) << BIT_PREV_SPEED
-        _settings |= ((StateTracker.timer_left & BMASK_TIMER_LEFT) << BIT_TIMER_LEFT) if StateTracker.timer_left else 0
+        _settings |= 1 << BIT_POWER if state_tracker.power else 0
+        _settings |= 1 << BIT_LIGHTS if state_tracker.lights else 0
+        _settings |= 1 << BIT_LOCK if state_tracker.lock else 0
+        _settings |= 1 << BIT_USERMAINT if state_tracker.user_maint else 0
+        _settings |= (state_tracker.speed & BMASK_SPEED) << BIT_SPEED
+        _settings |= (state_tracker.prev_speed & BMASK_SPEED) << BIT_PREV_SPEED
+        _settings |= ((state_tracker.timer_left & BMASK_TIMER_LEFT) << BIT_TIMER_LEFT) if state_tracker.timer_left else 0
 
         if _settings != self._prev_settings:
             # Do not commit if user is having fun with buttons
@@ -122,7 +122,7 @@ class Persistence:
 
     def _persist_lifetime(self):
         self._lifetime += time() - self.last_update
-        self._relative_filter_lifetime += self._time_to_rel_time(time() - self.last_update, StateTracker.speed)
+        self._relative_filter_lifetime += self._time_to_rel_time(time() - self.last_update, state_tracker.speed)
         self.last_update = time()
 
         self.nvs.set_i32(DEVICE_LIFETIME, self.lifetime)
@@ -137,7 +137,7 @@ class Persistence:
 
     @property
     def relative_filter_lifetime(self):
-        return self._time_to_rel_time(time() - self.last_update, StateTracker.speed) + self._relative_filter_lifetime
+        return self._time_to_rel_time(time() - self.last_update, state_tracker.speed) + self._relative_filter_lifetime
 
     # noinspection PyShadowingNames
     @staticmethod
@@ -175,7 +175,7 @@ class Persistence:
     # This is async so it can be scheduled in the asyncio event loop
     async def track(self):
         changed = self._persist_settings()
-        if StateTracker.power:
+        if state_tracker.power:
             delta = time() - self.last_update
             if delta >= LIFETIME_UPDATE_INTERVAL_SEC:
                 self._persist_lifetime()

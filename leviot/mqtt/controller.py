@@ -1,7 +1,7 @@
 import uasyncio
 
 from leviot import conf, ulog
-from leviot.state import StateTracker
+from leviot.state import state_tracker
 from leviot.utils import iso8601
 from mqtt_as.timeout import MQTTClient
 
@@ -128,14 +128,14 @@ class MQTTController:
             await self.leviot.set_timer(mins)
 
     async def notify_power(self):
-        await self.client.publish(self.base_topic + "/fan/power", str(StateTracker.power).lower(), retain=True,
+        await self.client.publish(self.base_topic + "/fan/power", str(state_tracker.power).lower(), retain=True,
                                   timeout=60)
 
     async def notify_speed(self):
-        await self.client.publish(self.base_topic + "/fan/speed", str(StateTracker.speed), retain=True, timeout=60)
+        await self.client.publish(self.base_topic + "/fan/speed", str(state_tracker.speed), retain=True, timeout=60)
 
     async def notify_timer(self):
-        await self.client.publish(self.base_topic + "/timer/minutes", str(StateTracker.timer_left), retain=True, timeout=60)
+        await self.client.publish(self.base_topic + "/timer/minutes", str(state_tracker.timer_left), retain=True, timeout=60)
         await self.client.publish(
             self.base_topic + "/timer/iso8601",
-            iso8601.number_to_duration(StateTracker.timer_left * 60), retain=True, timeout=60)
+            iso8601.number_to_duration(state_tracker.timer_left * 60), retain=True, timeout=60)

@@ -5,7 +5,7 @@ from leviot import conf, ulog
 from leviot.constants import FAN_SPEED_MAP
 from leviot.http import uhttp, html, ufirewall
 from leviot.http.uhttp import HTTPError
-from leviot.state import StateTracker
+from leviot.state import state_tracker
 
 log = ulog.Logger("http_server")
 
@@ -78,9 +78,9 @@ class HttpServer:
         await uhttp.HTTPResponse(
             200,
             body=html.index.format(
-                power='ON' if StateTracker.power else "OFF",
-                speed=FAN_SPEED_MAP[StateTracker.speed],
-                timer=StateTracker.timer_left
+                power='ON' if state_tracker.power else "OFF",
+                speed=FAN_SPEED_MAP[state_tracker.speed],
+                timer=state_tracker.timer_left
             ),
             headers={'Content-Type': 'text/html;charset=utf-8'}
         ).write_into(writer)
