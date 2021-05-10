@@ -13,10 +13,12 @@ log = ulog.Logger("touchpad")
 class TouchPads:
     def __init__(self):
         self.tp = {}
-        self.debounce = set()
+        self.debounce_off = set()
+        self.debounce_on = {}
 
         for name, pin in constants.TOUCHPADS.items():
             self.tp[name] = TouchPad(Pin(pin))
+            self.debounce_on[name] = 0
 
         log.i("Touchpad values:")
         accum = 0
@@ -30,19 +32,30 @@ class TouchPads:
 
     @micropython.native
     def poll(self) -> list:
-        new = []
         for name, value in self.read_all():
-            if value < conf.touchpad_calibration_val[name] and name not in self.debounce:
-                new.append(name)
-                # Do not debounce pads that are supposed to be held down
+            if value < conf.touchpad_calibration_val[name] and name not in self.debounce_off:
+                self.debounce_on[name] += 1
+            elif value >= conf.touchpad_calibration_val[name] and name in self.debounce_off:
+                self.debounce_on[name] = 0
+                self.debounce_off.remove(name)
+
+        pressed = []
+
+        for name, occurrences in self.debounce_on.items():
+            if occurrences > 4 or name in ("FILTER", "LOCK"):
+                pressed.append(name)
+                self.debounce_on[name] = 0
+
                 if name not in ("FILTER", "LOCK"):
-                    self.debounce.add(name)
-            elif value >= conf.touchpad_calibration_val[name] and name in self.debounce:
-                self.debounce.remove(name)
-        return new
+                    self.debounce_off.add(name)
+
+        return pressed
 
     def calibrate(self):
         gpio.init()
+        with gpio:
+            gpio.leds(False)
+
         print()
         print("Touchpad calibration")
         result = {}
@@ -55,14 +68,15 @@ class TouchPads:
 
             print("{} \t".format(tp), end="")
 
-            for i in range(0, 100 * 10 * 5, 100):  # 5s
+            interval = 5
+            for i in range(0, 5000, interval):  # 5s
                 led_on = False
-                if i % 500:
+                if i % (500/interval):
                     led_on = not led_on
                     with gpio:
                         gpio.value(led, led_on)
                 readings.append(self.tp[tp].read())
-                utime.sleep_ms(100)
+                utime.sleep_ms(interval)
 
             with gpio:
                 gpio.off(led)
@@ -71,12 +85,12 @@ class TouchPads:
             pin_max = max(readings)
             pin_mid = (pin_min + pin_max) // 2
             pin_qmid = int(math.sqrt((pin_min ** 2 + pin_max ** 2) / 2))
-            pin_rqmid = int(pin_max - pin_qmid + pin_min)
+            pin_30p = int((pin_max - pin_min) * 0.3 + pin_min)
 
-            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} rqmid".format(pin_min, pin_max, pin_mid, pin_qmid,
-                                                                                    pin_rqmid))
+            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} 30%".format(
+                pin_min, pin_max, pin_mid, pin_qmid, pin_30p))
 
-            result[tp] = pin_rqmid
+            result[tp] = pin_30p
 
         print("Calibration result: (replace in config to save it)\n")
         print("touchpad_calibration_val = {")
