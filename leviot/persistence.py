@@ -78,6 +78,8 @@ class Persistence:
         self._last_persist_settings_time = time() - USER_ACTION_TIMEOUT_SEC
         self._last_not_presisted_settings = 0
 
+        loaded = 0
+
         try:
             _settings = self.nvs.get_i32(DEVICE_SETTINGS)
             state_tracker.power = (_settings >> BIT_POWER) & 1 == 1
@@ -87,22 +89,45 @@ class Persistence:
             state_tracker.lock = (_settings >> BIT_LOCK) & 1 == 1
             state_tracker.user_maint = (_settings >> BIT_USERMAINT) & 1 == 1
             state_tracker.timer_left = (_settings >> BIT_TIMER_LEFT) & BMASK_TIMER_LEFT
-
-            self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
-            self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
-            self.filter_install = self.nvs.get_i32(FILTER_INSTALL_TIME)
-            log.i("Loaded persisted info from storage")
+            loaded += 1
         except OSError as e:
-            self._relative_filter_lifetime = self.lifetime
-            self.filter_install = self.lifetime
-            self.last_dust = 0
+            usys.print_exception(e)
+
+        try:
+            self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
+            loaded += 1
+        except OSError as e:
+            usys.print_exception(e)
+
+        try:
+            self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
+            loaded += 1
+        except OSError as e:
+            usys.print_exception(e)
+
+        try:
+            self.filter_install = self.nvs.get_i32(FILTER_INSTALL_TIME)
+            loaded += 1
+        except OSError as e:
+            usys.print_exception(e)
+
+        if loaded == 4:
+            log.i("Loaded persisted info from storage")
+        else:
+            if self._relative_filter_lifetime == 0:
+                self._relative_filter_lifetime = self.lifetime
+            if self.filter_install == 0:
+                self.filter_install = self.lifetime
             self.nvs.set_i32(FILTER_INSTALL_TIME, self.filter_install)
             self.nvs.set_i32(FILTER_LAST_DUST, self.last_dust)
             self._persist_settings()
             self._persist_lifetime()
             self._commit()
-            usys.print_exception(e)
+
+        if loaded == 0:
             log.i("Created new persistence storage")
+        elif loaded < 4:
+            log.i("Restored missing values to defaults")
 
         log.i("Stats:")
         log.i(" - Lifetime: {} seconds".format(self.lifetime))
