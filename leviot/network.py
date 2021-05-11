@@ -5,6 +5,7 @@ import usys
 import leviot_conf
 from leviot import conf as cfg, constants, ulog
 from leviot.extgpio import gpio
+from leviot.state import state_tracker
 
 wlan = None
 
@@ -65,7 +66,7 @@ async def up() -> network.WLAN:
         wlan.active(True)
 
     with gpio:
-        gpio.off(constants.LED_POWER)
+        gpio.value(constants.LED_POWER, state_tracker.power)
 
     return wlan
 
