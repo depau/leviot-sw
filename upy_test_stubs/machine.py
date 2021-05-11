@@ -40,6 +40,10 @@ class PWM:
     def deinit(self):
         print(f"STUB: machine.PWM{self.args},deinit()")
 
+    def duty(self, *a):
+        #print(f"STUB: machine.PWM{self.args},duty{a}")
+        pass
+
 
 class UART:
     def __init__(self, *a):
