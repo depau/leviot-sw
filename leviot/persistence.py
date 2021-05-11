@@ -151,6 +151,7 @@ class Persistence:
         self.nvs.set_i32(FILTER_RELATIVE_LIFETIME, self._lifetime)
 
     def _commit(self):
+        log.d("Commit persistence storage")
         self.nvs.commit()
 
     @property
