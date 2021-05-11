@@ -204,6 +204,7 @@ class Persistence:
         self.last_update = time()
 
     def notify_maintenance(self):
+        state_tracker.user_maint = False
         if self.replacement_due:
             self._persist_lifetime()
             self.last_dust = 0
