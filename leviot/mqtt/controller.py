@@ -59,7 +59,7 @@ class MQTTController:
             # Device attributes
             await self.client.publish(self.base_topic + "/$homie", "4.0.0", retain=True, timeout=60)
             await self.client.publish(self.base_topic + "/$name", conf.homie_friendly_name, retain=True, timeout=60)
-            await self.client.publish(self.base_topic + "/$nodes", "fan,timer", retain=True, timeout=60)
+            await self.client.publish(self.base_topic + "/$nodes", "fan,timer,system", retain=True, timeout=60)
             await self.client.publish(self.base_topic + "/$implementation", "LevIoT Snek", retain=True, timeout=60)
 
             ## Fan speed node attributes
@@ -99,6 +99,18 @@ class MQTTController:
             await self.client.publish(prop + "/$name", "Timer duration", retain=True, timeout=60)
             await self.client.publish(prop + "/$datatype", "duration", retain=True, timeout=60)
             await self.client.publish(prop + "/$settable", "true", retain=True, timeout=60)
+
+            ## System node attributes
+            node = self.base_topic + "/system"
+            await self.client.publish(node + "/$name", "System", retain=True, timeout=60)
+            await self.client.publish(node + "/$type", "Air purifier", retain=True, timeout=60)
+            await self.client.publish(node + "/$properties", "log", retain=True, timeout=60)
+
+            ### Log property attributes
+            prop = node + "/log"
+            await self.client.publish(prop + "/$name", "Log", retain=True, timeout=60)
+            await self.client.publish(prop + "/$datatype", "string", retain=True, timeout=60)
+            await self.client.publish(prop + "/$settable", "false", retain=True, timeout=60)
 
         await self.notify_power()
         await self.notify_speed()
@@ -150,3 +162,9 @@ class MQTTController:
         await self.client.publish(
             self.base_topic + "/timer/iso8601",
             iso8601.number_to_duration(state_tracker.timer_left * 60), retain=True, timeout=60)
+
+    async def log_async(self, message: str):
+        await self.client.publish(self.base_topic + "/system/log", message, retain=True, timeout=60)
+
+    def log(self, message: str):
+        self.loop.create_task(self.log_async(message))

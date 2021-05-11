@@ -38,11 +38,15 @@ class LevIoT:
         await self.httpd.serve()
 
         if conf.mqtt_enabled:
-            await self.mqtt.start()
+            self.loop.create_task(self.start_mqtt())
 
         while True:
             await uasyncio.sleep(1)
             await persistence.track()
+
+    async def start_mqtt(self):
+        await self.mqtt.start()
+        ulog.set_mqtt(self.mqtt)
 
     async def set_timer(self, time: int, cause="unknown"):
         log.i("Set timer to {} minutes (cause: {})".format(time, cause))
