@@ -102,6 +102,7 @@ class MQTTController:
 
         await self.notify_power()
         await self.notify_speed()
+        await self.notify_timer()
         await self.client.publish(self.state_topic, "ready", retain=True, timeout=60)
         log.i("MQTT ready")
 
