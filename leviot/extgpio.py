@@ -1,6 +1,5 @@
 import micropython
 import uasyncio
-import utime
 from machine import Pin, Signal, PWM
 
 from leviot import constants
@@ -103,9 +102,9 @@ class GPIOManager:
 
     async def blink_loop(self):
         pwm = PWM(self.s_filter_led)
+        increment = 1
+        duty = 0
         while self.filter_led_cur == "blink":
-            increment = 1
-            duty = 0
             while self.filter_led_cur == "blink" and 0 <= duty <= 1023:
                 pwm.duty(duty)
                 duty += increment
@@ -115,5 +114,6 @@ class GPIOManager:
 
         pwm.deinit()
         self.s_filter_led.value(self.filter_led_cur)
+
 
 gpio = GPIOManager()
