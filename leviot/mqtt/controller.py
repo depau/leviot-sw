@@ -33,7 +33,17 @@ class MQTTController:
         self.client = MQTTClient(conf.mqtt_config)
 
     async def start(self):
-        await self.client.connect()
+        self.loop.create_task(self.connect_loop())
+
+    async def connect_loop(self):
+        log.i("Starting MQTT")
+        while True:
+            try:
+                await self.client.connect()
+                break
+            except Exception as e:
+                log.e("MQTT connect error, retrying in 5 seconds: {}".format(str(e)))
+                await uasyncio.sleep(5)
         log.i("MQTT started")
 
     async def _on_connect(self, _):
