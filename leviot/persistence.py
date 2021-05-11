@@ -1,4 +1,5 @@
 import esp32
+import usys
 from utime import time
 
 from leviot import ulog
@@ -91,14 +92,16 @@ class Persistence:
             self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
             self.filter_install = self.nvs.get_i32(FILTER_INSTALL_TIME)
             log.i("Loaded persisted info from storage")
-        except OSError:
+        except OSError as e:
             self._relative_filter_lifetime = self.lifetime
             self.filter_install = self.lifetime
             self.last_dust = 0
+            self.nvs.set_i32(FILTER_INSTALL_TIME, self.filter_install)
             self.nvs.set_i32(FILTER_LAST_DUST, self.last_dust)
             self._persist_settings()
             self._persist_lifetime()
             self._commit()
+            usys.print_exception(e)
             log.i("Created new persistence storage")
 
         log.i("Stats:")
@@ -178,6 +181,8 @@ class Persistence:
         if self.replacement_due:
             self._persist_lifetime()
             self.last_dust = 0
+            self.filter_install = self.lifetime
+            self.nvs.set_i32(FILTER_INSTALL_TIME, self.filter_install)
             self.nvs.set_i32(FILTER_LAST_DUST, self.last_dust)
             self._relative_filter_lifetime = 0
             self._persist_lifetime()
