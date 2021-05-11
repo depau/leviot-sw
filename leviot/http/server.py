@@ -91,7 +91,7 @@ class HttpServer:
             return await uhttp.HTTPResponse.bad_request(writer)
         try:
             speed = int(speed_str)
-            await self.leviot.set_fan_speed(speed)
+            await self.leviot.set_fan_speed(speed, cause="http")
         except Exception as e:
             print(e)
             return await uhttp.HTTPResponse.bad_request(writer)
@@ -100,7 +100,7 @@ class HttpServer:
 
     async def handle_priv_set_power(self, writer: asyncio.StreamWriter, power: bool):
         try:
-            await self.leviot.set_power(power)
+            await self.leviot.set_power(power, cause="http")
         except Exception as e:
             log.e(e)
             return await uhttp.HTTPResponse.internal_server_error(writer)
@@ -113,7 +113,7 @@ class HttpServer:
             return await uhttp.HTTPResponse.bad_request(writer)
         try:
             timer = int(timer_str)
-            await self.leviot.set_timer(timer)
+            await self.leviot.set_timer(timer, cause="http")
         except Exception as e:
             print(e)
             return await uhttp.HTTPResponse.bad_request(writer)

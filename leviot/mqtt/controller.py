@@ -118,25 +118,25 @@ class MQTTController:
         if topic.endswith("/fan/power/set"):
             if payload not in (b"true", b"false"):
                 raise ValueError("Invalid MQTT payload for Homie bool: {}".format(payload))
-            await self.leviot.set_power(payload == b"true")
+            await self.leviot.set_power(payload == b"true", cause="mqtt")
 
         elif topic.endswith("/fan/speed/set"):
             speed = int(payload)
             if not 0 <= speed <= 3:
                 raise ValueError("Invalid MQTT fan speed: {}".format(speed))
-            await self.leviot.set_fan_speed(speed)
+            await self.leviot.set_fan_speed(speed, cause="mqtt")
 
         elif topic.endswith("/timer/minutes/set"):
             mins = int(payload)
             if mins < 0:
                 raise ValueError("Invalid MQTT negative timer minutes: {}".format(mins))
-            await self.leviot.set_timer(mins)
+            await self.leviot.set_timer(mins, cause="mqtt")
 
         elif topic.endswith("/timer/iso8601/set"):
             mins = iso8601.duration_to_number(payload.decode()) // 60
             if mins < 0:
                 raise ValueError("Invalid MQTT negative timer time: {}".format((payload.decode())))
-            await self.leviot.set_timer(mins)
+            await self.leviot.set_timer(mins, cause="mqtt")
 
     async def notify_power(self):
         await self.client.publish(self.base_topic + "/fan/power", str(state_tracker.power).lower(), retain=True,
