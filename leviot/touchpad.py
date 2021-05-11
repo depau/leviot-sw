@@ -42,7 +42,7 @@ class TouchPads:
         pressed = []
 
         for name, occurrences in self.debounce_on.items():
-            if occurrences > 4 or name in ("FILTER", "LOCK"):
+            if occurrences > 4 or (name in ("FILTER", "LOCK") and occurrences > 0):
                 pressed.append(name)
                 self.debounce_on[name] = 0
 
