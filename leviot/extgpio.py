@@ -23,7 +23,7 @@ class GPIOManager:
         self.filter_led_cur = False
         self.filter_led_staging = False
 
-        self.s_filter_led = Signal(Pin(constants.PIN_LED_FILTER, Pin.OUT), invert=False)
+        self.s_filter_led = Pin(constants.PIN_LED_FILTER, Pin.OUT)
         self.s_filter_led.off()
 
         self.sr_shift = Signal(Pin(constants.PIN_SR_DS, Pin.OUT), invert=False)
