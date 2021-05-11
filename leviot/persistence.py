@@ -1,7 +1,10 @@
 import esp32
 from utime import time
 
+from leviot import ulog
 from leviot.state import state_tracker
+
+log = ulog.Logger("persistence")
 
 # 5x 32bit values are stored into NVS and 3 of them are updated on average every minute. Considering 10.000 erase
 # cycles per flash sector (512 bytes), 125 entries per sector (NVS page) and 32 pages (48 if not building without OTA
@@ -87,6 +90,7 @@ class Persistence:
             self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
             self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
             self.filter_install = self.nvs.get_i32(FILTER_INSTALL_TIME)
+            log.i("Loaded persisted info from storage")
         except OSError:
             self._relative_filter_lifetime = self.lifetime
             self.filter_install = self.lifetime
@@ -95,6 +99,21 @@ class Persistence:
             self._persist_settings()
             self._persist_lifetime()
             self._commit()
+            log.i("Created new persistence storage")
+
+        log.i("Stats:")
+        log.i(" - Lifetime: {} seconds".format(self.lifetime))
+        log.i(" - Filter installated at {} seconds".format(self.filter_install))
+        log.i(" - Filter relative lifetime: {} (NOT seconds)".format(self.relative_filter_lifetime))
+        log.i(" - Last dust at {} rel lifetime".format(self.last_dust))
+        log.i("Settings:")
+        log.i(" - Power: {}".format(state_tracker.power and "on" or "off"))
+        log.i(" - Lights: {}".format(state_tracker.lights and "on" or "off"))
+        log.i(" - Lock: {}".format(state_tracker.lock and "on" or "off"))
+        log.i(" - Speed: {}".format(state_tracker.speed))
+        log.i(" - Prev speed: {}".format(state_tracker.prev_speed))
+        log.i(" - Timer left: {} minutes".format(state_tracker.timer_left))
+        log.i(" - User maintenance reminder: {}".format(state_tracker.user_maint))
 
     def _persist_settings(self) -> bool:
         _settings = 0
