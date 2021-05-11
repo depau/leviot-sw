@@ -15,7 +15,7 @@ class StateTracker:
 
     @property
     def timer_left(self):
-        return self._timer_left > 0 and self.timer_left or 0
+        return self._timer_left > 0 and self._timer_left or 0
 
     @timer_left.setter
     def timer_left(self, value):
@@ -27,7 +27,7 @@ class StateTracker:
                 log.e("Provided value for timer_left is < 0, which is invalid!")
                 usys.print_exception(e)
             value = 0
-        self._timer_left = 0
+        self._timer_left = value
 
 
 state_tracker = StateTracker()
