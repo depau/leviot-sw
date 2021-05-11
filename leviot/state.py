@@ -1,5 +1,7 @@
 from leviot import ulog
 
+import usys
+
 log = ulog.Logger("state")
 
 
