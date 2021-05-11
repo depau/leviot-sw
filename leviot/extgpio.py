@@ -108,7 +108,7 @@ class GPIOManager:
             while self.filter_led_cur == "blink" and 0 <= duty <= 1023:
                 pwm.duty(duty)
                 duty += increment
-                await uasyncio.sleep_ms(3)
+                await uasyncio.sleep_ms(2)
             increment *= -1
             duty += increment
 
