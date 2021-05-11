@@ -85,12 +85,12 @@ class TouchPads:
             pin_max = max(readings)
             pin_mid = (pin_min + pin_max) // 2
             pin_qmid = int(math.sqrt((pin_min ** 2 + pin_max ** 2) / 2))
-            pin_30p = int((pin_max - pin_min) * 0.3 + pin_min)
+            pin_25p = int((pin_max - pin_min) * 0.25 + pin_min)
 
-            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} 30%".format(
-                pin_min, pin_max, pin_mid, pin_qmid, pin_30p))
+            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} 25%".format(
+                pin_min, pin_max, pin_mid, pin_qmid, pin_25p))
 
-            result[tp] = pin_30p
+            result[tp] = pin_25p
 
         print("Calibration result: (replace in config to save it)\n")
         print("touchpad_calibration_val = {")
