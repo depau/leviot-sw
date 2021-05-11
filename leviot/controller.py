@@ -49,6 +49,9 @@ class LevIoT:
         timer_running = state_tracker.timer_left > 0
         state_tracker.timer_left = time
 
+        with gpio:
+            await self.update_leds()
+
         if conf.mqtt_enabled:
             await self.mqtt.notify_timer()
 
