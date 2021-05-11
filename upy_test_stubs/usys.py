@@ -2,4 +2,7 @@ import traceback
 
 
 def print_exception(e):
-    traceback.print_exc(e)
+    try:
+        traceback.print_exc(e)
+    except TypeError:
+        print(e)
