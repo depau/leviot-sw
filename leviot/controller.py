@@ -19,6 +19,7 @@ class LevIoT:
             self.mqtt = MQTTController(self)
         self.loop = uasyncio.get_event_loop()
         self.should_stop = False
+        self.is_kickstarting = False
 
     def stop(self):
         self.should_stop = True
@@ -197,23 +198,34 @@ class LevIoT:
         if not 0 <= speed <= 3:
             raise ValueError("Fan speed must be within 0 and 3")
 
-        state_tracker.prev_speed = state_tracker.speed
-        state_tracker.speed = speed
+        if cause == "kickstart":
+            self.is_kickstarting = True
+        else:
+            while self.is_kickstarting:
+                log.d("Set speed delayed due to kickstart")
+                await uasyncio.sleep(1)
 
-        log.i("Set speed to {} (cause: {})".format(speed, cause))
+        try:
+            state_tracker.prev_speed = state_tracker.speed
+            state_tracker.speed = speed
 
-        if conf.mqtt_enabled:
-            self.loop.create_task(self.mqtt.notify_speed())
+            log.i("Set speed to {} (cause: {})".format(speed, cause))
 
-        if not state_tracker.power:
-            return
+            if conf.mqtt_enabled:
+                self.loop.create_task(self.mqtt.notify_speed())
 
-        with gpio:
-            gpio.value(constants.FAN_CTL0, state_tracker.speed == 0 and state_tracker.power)
-            gpio.value(constants.FAN_CTL1, state_tracker.speed == 1 and state_tracker.power)
-            gpio.value(constants.FAN_CTL2, state_tracker.speed == 2 and state_tracker.power)
-            gpio.value(constants.FAN_CTL3, state_tracker.speed == 3 and state_tracker.power)
-            await self.update_leds()
+            if not state_tracker.power:
+                return
+
+            with gpio:
+                gpio.value(constants.FAN_CTL0, state_tracker.speed == 0 and state_tracker.power)
+                gpio.value(constants.FAN_CTL1, state_tracker.speed == 1 and state_tracker.power)
+                gpio.value(constants.FAN_CTL2, state_tracker.speed == 2 and state_tracker.power)
+                gpio.value(constants.FAN_CTL3, state_tracker.speed == 3 and state_tracker.power)
+                await self.update_leds()
+        finally:
+            if cause == "kickstart":
+                self.is_kickstarting = False
 
     async def set_lights(self, lights: bool, cause="unknown"):
         state_tracker.lights = lights
