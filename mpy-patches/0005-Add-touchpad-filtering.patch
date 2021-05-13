@@ -1,0 +1,118 @@
+From 272b74a7fde0323811a281c8afafcc7eaced1ee1 Mon Sep 17 00:00:00 2001
+From: Davide Depau <davide@depau.eu>
+Date: Wed, 12 May 2021 23:56:36 +0200
+Subject: [PATCH] Add touchpad filtering
+
+---
+ ports/esp32/machine_touchpad.c | 14 +++++++++++++
+ ports/esp32/modesp32.c         | 37 ++++++++++++++++++++++++++++++++++
+ 2 files changed, 51 insertions(+)
+
+diff --git a/ports/esp32/machine_touchpad.c b/ports/esp32/machine_touchpad.c
+index 335157b15..230aa565f 100644
+--- a/ports/esp32/machine_touchpad.c
++++ b/ports/esp32/machine_touchpad.c
+@@ -32,6 +32,7 @@
+ 
+ #include "driver/gpio.h"
+ #include "driver/touch_pad.h"
++#include "hal/touch_sensor_types.h"
+ 
+ typedef struct _mtp_obj_t {
+     mp_obj_base_t base;
+@@ -71,6 +72,7 @@ STATIC mp_obj_t mtp_make_new(const mp_obj_type_t *type, size_t n_args, size_t n_
+     static int initialized = 0;
+     if (!initialized) {
+         touch_pad_init();
++        touch_pad_set_voltage(TOUCH_HVOLT_2V7, TOUCH_LVOLT_0V5, TOUCH_HVOLT_ATTEN_0V5);
+         touch_pad_set_fsm_mode(TOUCH_FSM_MODE_TIMER);
+         initialized = 1;
+     }
+@@ -103,10 +105,22 @@ STATIC mp_obj_t mtp_read(mp_obj_t self_in) {
+ }
+ MP_DEFINE_CONST_FUN_OBJ_1(mtp_read_obj, mtp_read);
+ 
++STATIC mp_obj_t mtp_read_filtered(mp_obj_t self_in) {
++    mtp_obj_t *self = self_in;
++    uint16_t value;
++    esp_err_t err = touch_pad_read_filtered(self->touchpad_id, &value);
++    if (err == ESP_OK) {
++        return MP_OBJ_NEW_SMALL_INT(value);
++    }
++    mp_raise_ValueError(MP_ERROR_TEXT("Touch pad error"));
++}
++MP_DEFINE_CONST_FUN_OBJ_1(mtp_read_filtered_obj, mtp_read_filtered);
++
+ STATIC const mp_rom_map_elem_t mtp_locals_dict_table[] = {
+     // instance methods
+     { MP_ROM_QSTR(MP_QSTR_config), MP_ROM_PTR(&mtp_config_obj) },
+     { MP_ROM_QSTR(MP_QSTR_read), MP_ROM_PTR(&mtp_read_obj) },
++    { MP_ROM_QSTR(MP_QSTR_read_filtered), MP_ROM_PTR(&mtp_read_filtered_obj) },
+ };
+ 
+ STATIC MP_DEFINE_CONST_DICT(mtp_locals_dict, mtp_locals_dict_table);
+diff --git a/ports/esp32/modesp32.c b/ports/esp32/modesp32.c
+index 578addc00..67b892ffb 100644
+--- a/ports/esp32/modesp32.c
++++ b/ports/esp32/modesp32.c
+@@ -52,6 +52,10 @@
+ #endif
+ #include "../heap_private.h"
+ 
++#if CONFIG_IDF_TARGET_ESP32
++#include "driver/touch_pad.h"
++#endif
++
+ STATIC mp_obj_t esp32_wake_on_touch(const mp_obj_t wake) {
+ 
+     if (machine_rtc_config.ext0_pin != -1) {
+@@ -80,6 +84,36 @@ STATIC mp_obj_t esp32_touch_set_cycles(const mp_obj_t measure_in, const mp_obj_t
+ }
+ STATIC MP_DEFINE_CONST_FUN_OBJ_2(esp32_touch_set_cycles_obj, esp32_touch_set_cycles);
+ 
++#if CONFIG_IDF_TARGET_ESP32
++STATIC mp_obj_t esp32_touch_filter_start(const mp_obj_t period_in) {
++    mp_int_t period = mp_obj_get_int(period_in);
++    esp_err_t err = touch_pad_filter_start(period);
++    if (err == ESP_OK) {
++        return mp_const_none;
++    }
++    mp_raise_ValueError(MP_ERROR_TEXT("Touch pad error"));
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp32_touch_filter_start_obj, esp32_touch_filter_start);
++
++STATIC mp_obj_t esp32_touch_filter_stop() {
++    esp_err_t err = touch_pad_filter_stop();
++    if (err == ESP_OK) {
++        return mp_const_none;
++    }
++    mp_raise_ValueError(MP_ERROR_TEXT("Touch pad error"));
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_0(esp32_touch_filter_stop_obj, esp32_touch_filter_stop);
++
++STATIC mp_obj_t esp32_touch_filter_delete() {
++    esp_err_t err = touch_pad_filter_delete();
++    if (err == ESP_OK) {
++        return mp_const_none;
++    }
++    mp_raise_ValueError(MP_ERROR_TEXT("Touch pad error"));
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp32_touch_filter_delete_obj, esp32_touch_filter_delete);
++#endif
++
+ STATIC mp_obj_t esp32_wake_on_ext0(size_t n_args, const mp_obj_t *pos_args, mp_map_t *kw_args) {
+ 
+     if (machine_rtc_config.wake_on_touch) {
+@@ -204,6 +238,9 @@ STATIC const mp_rom_map_elem_t esp32_module_globals_table[] = {
+     { MP_ROM_QSTR(MP_QSTR_wake_on_ext1), MP_ROM_PTR(&esp32_wake_on_ext1_obj) },
+     #if CONFIG_IDF_TARGET_ESP32
+     { MP_ROM_QSTR(MP_QSTR_touch_set_cycles), MP_ROM_PTR(&esp32_touch_set_cycles_obj) },
++    { MP_ROM_QSTR(MP_QSTR_touch_filter_start), MP_ROM_PTR(&esp32_touch_filter_start_obj) },
++    { MP_ROM_QSTR(MP_QSTR_touch_filter_stop), MP_ROM_PTR(&esp32_touch_filter_stop_obj) },
++    { MP_ROM_QSTR(MP_QSTR_touch_filter_delete), MP_ROM_PTR(&esp32_touch_filter_delete_obj) },
+     { MP_ROM_QSTR(MP_QSTR_raw_temperature), MP_ROM_PTR(&esp32_raw_temperature_obj) },
+     { MP_ROM_QSTR(MP_QSTR_hall_sensor), MP_ROM_PTR(&esp32_hall_sensor_obj) },
+     #endif
+-- 
+2.31.1
+
