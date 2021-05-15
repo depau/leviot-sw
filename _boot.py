@@ -51,7 +51,6 @@ def _wifi_up():
 
 builtins.run = Command(leviot.main)
 builtins.netup = Command(_wifi_up)
-builtins.cal = Command(leviot.touchpad.touchpads.calibrate)
 
 try:
     from leviot_conf import autoboot
@@ -62,6 +61,6 @@ except ImportError:
 if autoboot:
     leviot.main()
 
-print("Type 'run' to re-start the program, 'netup' to turn on and connect to Wi-Fi, 'cal' to calibrate touchpads")
+print("Type 'run' to re-start the program, 'netup' to turn on and connect to Wi-Fi")
 print("You can run your code before startup by adding a 'user_boot.py' script.")
 print()

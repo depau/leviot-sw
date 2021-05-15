@@ -1,13 +1,81 @@
-import math
-
+import esp32
 import micropython
-import utime
 from machine import Pin, TouchPad
 
-from leviot import constants, conf, ulog
-from leviot.extgpio import gpio
+from leviot import constants, ulog
 
 log = ulog.Logger("touchpad")
+
+esp32.touch_set_cycles(500, 500)
+
+
+# Port of https://github.com/valerionew/colors-of-italy/blob/2dd357fbdd820e67e3c0b994458b36cffec10506/firmware/src/main.cpp#L29-L165
+class LowPassFilter:
+    def __init__(self, alpha: float = 0., value: float = 0.):
+        self.alpha = alpha
+        self.value = value
+
+    def update(self, sample: float) -> float:
+        self.value += (sample - self.value) * self.alpha
+        return self.value
+
+
+class CircularAdder:
+    def __init__(self, size: int):
+        self.size = size
+        self.buf = [0] * size
+        self.pos = 0
+
+    def update(self, value: float) -> float:
+        # noinspection PyTypeChecker
+        self.buf[self.pos] = value
+        self.pos += 1
+        self.pos %= self.size
+        return sum(self.buf)
+
+
+class MovingAverage(CircularAdder):
+    def update(self, value: float):
+        return super(MovingAverage, self).update(value) / self.size
+
+
+class FilteredTouchpad(TouchPad):
+    def __init__(self, pin: Pin, threshold: int = 3.5, outlier_threshold: int = 100,
+                 steady_alpha=0.0005, recover_alpha=0.1):
+        super(FilteredTouchpad, self).__init__(pin)
+        self.threshold = threshold
+        self.outlier_threshold = outlier_threshold
+        self.steady_alpha = steady_alpha
+        self.recover_alpha = recover_alpha
+
+        self.old_reading = self.read()
+        self._init = True
+        self._pressed = False
+
+        self.lpf = LowPassFilter(0.001, self.old_reading)
+        self.adder = CircularAdder(5)
+        self.avg = MovingAverage(5)
+
+    @property
+    def pressed(self) -> bool:
+        old_reading = self.old_reading
+        reading = self.old_reading = self.avg.update(self.read())
+
+        if abs(reading - old_reading) < self.outlier_threshold:
+            lp_filtered = self.lpf.update(reading)
+            box_filtered = self.adder.update(lp_filtered - reading)
+            # print(box_filtered, box_filtered > self.threshold and 5 or 0)
+            self._pressed = box_filtered > self.threshold
+
+            self.lpf.alpha = self.steady_alpha if box_filtered > 0 else self.recover_alpha
+
+        # Discard initial "pressed" readings until we get a "not pressed"
+        if self._pressed and self._init:
+            return False
+        elif self._init:
+            self._init = False
+
+        return self._pressed
 
 
 class TouchPads:
@@ -17,89 +85,33 @@ class TouchPads:
         self.debounce_on = {}
 
         for name, pin in constants.TOUCHPADS.items():
-            self.tp[name] = TouchPad(Pin(pin))
+            self.tp[name] = FilteredTouchpad(Pin(pin))
             self.debounce_on[name] = 0
-
-        log.i("Touchpad values:")
-        accum = 0
-        for name, value in self.read_all():
-            accum += value
-            log.i(" - {}: {}".format(name, value))
 
     def read_all(self):
         for name, tp in self.tp.items():
-            yield name, tp.read()
+            yield name, tp.pressed
 
     @micropython.native
     def poll(self) -> list:
-        for name, value in self.read_all():
-            if value < conf.touchpad_calibration_val[name] and name not in self.debounce_off:
+        for name, pressed in self.read_all():
+            if pressed and name not in self.debounce_off:
                 self.debounce_on[name] += 1
-            elif value >= conf.touchpad_calibration_val[name] and name in self.debounce_off:
+            elif pressed and name in self.debounce_off:
                 self.debounce_on[name] = 0
                 self.debounce_off.remove(name)
 
-        pressed = []
+        touchpads_pressed = []
 
         for name, occurrences in self.debounce_on.items():
             if occurrences > 4 or (name in ("FILTER", "LOCK") and occurrences > 0):
-                pressed.append(name)
+                touchpads_pressed.append(name)
                 self.debounce_on[name] = 0
 
                 if name not in ("FILTER", "LOCK"):
                     self.debounce_off.add(name)
 
-        return pressed
-
-    def calibrate(self):
-        gpio.init()
-        with gpio:
-            gpio.leds(False)
-
-        print()
-        print("Touchpad calibration")
-        result = {}
-
-        print("Tap the pad that blinks (or the closest one) multiple times as you normally would during normal "
-              "operation")
-
-        for tp, led in constants.TOUCHPAD_LED_MAPPING.items():
-            readings = []
-
-            print("{} \t".format(tp), end="")
-
-            interval = 5
-            for i in range(0, 5000, interval):  # 5s
-                led_on = False
-                if i % (500/interval):
-                    led_on = not led_on
-                    with gpio:
-                        gpio.value(led, led_on)
-                readings.append(self.tp[tp].read())
-                utime.sleep_ms(interval)
-
-            with gpio:
-                gpio.off(led)
-
-            pin_min = min(readings)
-            pin_max = max(readings)
-            pin_mid = (pin_min + pin_max) // 2
-            pin_qmid = int(math.sqrt((pin_min ** 2 + pin_max ** 2) / 2))
-            pin_25p = int((pin_max - pin_min) * 0.25 + pin_min)
-
-            print("{:>5} min  {:>5} max  {:>5} mid  {:>5} qmid  {:>5} 25%".format(
-                pin_min, pin_max, pin_mid, pin_qmid, pin_25p))
-
-            result[tp] = pin_25p
-
-        print("Calibration result: (replace in config to save it)\n")
-        print("touchpad_calibration_val = {")
-        for name, value in result.items():
-            print('    "{}": const({}),'.format(name, value))
-        print("}\n")
-
-        conf.touchpad_calibration_val = result
-        print("Calibration data applied, run with 'run' to test")
+        return touchpads_pressed
 
 
 touchpads = TouchPads()

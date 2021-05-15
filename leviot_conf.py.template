@@ -75,19 +75,6 @@ homie_autodiscovery = True
 # Only allow HTTP connections from private IP addresses
 private_nets_only = True
 
-## Touch pads configuration
-# Calibration values, generate with 'cal' command in MicroPython shell
-# Lower values mean higher sensitivity
-touchpad_calibration_val = {
-    "NIGHT": const(568),
-    "POWER": const(500),
-    "LIGHT": const(459),
-    "FAN": const(605),
-    "FILTER": const(622),
-    "LOCK": const(680),
-    "TIMER": const(432),
-}
-
 ## CPU frequency "scaling"
 cpu_freq_perf = 240000000
 cpu_freq_idle = 80000000
