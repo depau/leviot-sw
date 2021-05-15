@@ -21,7 +21,7 @@ import leviot
 # noinspection PyBroadException
 try:
     import user_boot
-except:
+except ImportError:
     pass
 
 
