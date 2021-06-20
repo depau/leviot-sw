@@ -3,13 +3,13 @@ from micropython import const
 
 # Touch pads
 TOUCHPADS = {
+    "FILTER": const(4),
+    "POWER": const(12),
+    "LOCK": const(13),
     "FAN": const(14),
-    "FILTER": const(33),
-    "NIGHT": const(13),
+    "TIMER": const(27),
     "LIGHT": const(32),
-    "LOCK": const(27),
-    "POWER": const(4),
-    "TIMER": const(15),
+    "NIGHT": const(33),
 }
 
 TOUCHPADS_POLL_INTERVAL_MS = 25
