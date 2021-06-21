@@ -94,9 +94,7 @@ class LevIoT:
                     _, hold_t = pad.read()
                     if hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
                         pad.ack()
-                        state_tracker.lock = not state_tracker.lock
-                        with gpio:
-                            await self.update_leds()
+                        await self.set_lock(not state_tracker.lock, cause='touchpad')
 
                 if not state_tracker.lock:
                     for name, pad in pressed.items():

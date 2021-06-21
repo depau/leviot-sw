@@ -259,7 +259,7 @@ class TouchpadManager:
             if pad.acknowledged:
                 continue
             state, duration = pad.read()
-            if state not in (TouchpadState.PRESS, TouchpadState.RELEASE):
+            if state not in (TouchpadState.PRESS, TouchpadState.PUSH):
                 continue
             result[pad.name] = pad
         return result
