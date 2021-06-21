@@ -3,6 +3,7 @@ import micropython
 import uasyncio
 from machine import Pin, TouchPad
 from micropython import const
+import usys
 
 from leviot import ulog, constants, conf
 
@@ -209,7 +210,11 @@ class TouchpadManager:
 
     # noinspection PyShadowingNames
     def load_touchpad(self, name: str, pin: Pin, sensitivity: float = 1) -> FilteredTouchpad:
-        tp = FilteredTouchpad(name, pin, sensitivity)
+        if usys.implementation.name == 'micropython':
+            tp = FilteredTouchpad(name, pin, sensitivity)
+        else:
+            import cpytouchpad
+            tp = cpytouchpad.FakeTouchpad(name)
         self.touchpads.add(tp)
         return tp
 

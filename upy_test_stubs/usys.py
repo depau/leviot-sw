@@ -1,3 +1,5 @@
+from sys import *
+
 import traceback
 
 
