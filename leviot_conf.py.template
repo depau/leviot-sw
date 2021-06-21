@@ -37,7 +37,6 @@ http_listen = "0.0.0.0"
 http_port = 80
 http_basic_auth = "user:pass"  # None to disable
 
-
 # MQTT configuration
 mqtt_enabled = False
 
@@ -81,3 +80,14 @@ cpu_freq_idle = 80000000
 
 ## Autoboot - set to False to prevent loading LevIoT on startup
 autoboot = True
+
+## Touchpad sensitivity configuration
+touchpads_sensitivity = {
+    "FILTER": 0.05161943319838057,
+    "POWER": 0.05604203152364273,
+    "LOCK": 0.046486486486486484,
+    "FAN": 0.0511482254697286,
+    "TIMER": 0.055322715842414084,
+    "LIGHT": 0.04321728691476591,
+    "NIGHT": 0.04085603112840467,
+}

@@ -1,117 +1,267 @@
 import esp32
 import micropython
+import uasyncio
 from machine import Pin, TouchPad
+from micropython import const
 
-from leviot import constants, ulog
+from leviot import ulog, constants, conf
 
 log = ulog.Logger("touchpad")
 
-esp32.touch_set_cycles(500, 500)
+
+# This is a 1:1 port, with non-necessary stuff removed, of
+# https://github.com/espressif/esp-iot-solution/blob/6c8400829886cc0d39b63da5050981244c45870d/components/features/touchpad/touchpad.c
+# I also copy-pasted the comments in Chinglish with no changes.
+# Some minor changes were made to adapt its state-tracking capabilities
+#
+# ---
+#
+# Copyright 2015-2016 Espressif Systems (Shanghai) PTE LTD
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
 
 
-# Port of https://github.com/valerionew/colors-of-italy/blob/2dd357fbdd820e67e3c0b994458b36cffec10506/firmware/src/main.cpp#L29-L165
-class LowPassFilter:
-    def __init__(self, alpha: float = 0., value: float = 0.):
-        self.alpha = alpha
-        self.value = value
-
-    def update(self, sample: float) -> float:
-        self.value += (sample - self.value) * self.alpha
-        return self.value
+class TouchpadState:
+    IDLE = const(0)
+    PRESS = const(1)
+    RELEASE = const(2)
+    PUSH = const(3)
 
 
-class CircularAdder:
-    def __init__(self, size: int):
-        self.size = size
-        self.buf = [0] * size
-        self.pos = 0
+class TPConsts:
+    # Period of IIR filter in ms when sensor is not touched.
+    FILTER_IDLE_PERIOD = const(100)
 
-    def update(self, value: float) -> float:
-        # noinspection PyTypeChecker
-        self.buf[self.pos] = value
-        self.pos += 1
-        self.pos %= self.size
-        return sum(self.buf)
+    # Period of IIR filter in ms when sensor is being touched. Shouldn't change this value.
+    FILTER_TOUCH_PERIOD = const(10)
+
+    # 20ms; Debounce threshold
+    STATE_SWITCH_DEBOUNCE = const(20)
+
+    # 5 count number; All channels;
+    BASELINE_RESET_COUNT_THRESHOLD = const(5)
+
+    # 800ms; Baseline update cycle
+    BASELINE_UPDATE_COUNT_THRESHOLD = const(800)
+
+    # 3% ; Set the low sensitivity threshold. When less than this threshold, remove the jitter processing.
+    TOUCH_LOW_SENSE_THRESHOLD = 0.03
+
+    # 75%; This is button type triggering threshold, should be larger than noise threshold. The threshold determines the
+    # sensitivity of the touch.
+    TOUCH_THRESHOLD_PERCENT = 0.75
+
+    # 20%; The threshold is used to determine whether to update the baseline. The touch system has a signal-to-noise ratio
+    # of at least 5:1.
+    NOISE_THRESHOLD_PERCENT = 0.20
+
+    # 10%; The threshold prevents frequent triggering.
+    HYSTERESIS_THRESHOLD_PERCENT = 0.10
+
+    # 20%; If the touch data exceed this threshold for 'RESET_COUNT_THRESHOLD' times, then reset baseline to raw data.
+    BASELINE_RESET_THRESHOLD_PERCENT = 0.20
 
 
-class MovingAverage(CircularAdder):
-    def update(self, value: float):
-        return super(MovingAverage, self).update(value) / self.size
+class FilteredTouchpad:
+    def __init__(self, name: str, pin: Pin, sensitivity: float):
+        self.name = name
+        self.tp = TouchPad(pin)
+        self.baseline = 0
+        for i in range(3):
+            self.baseline += self.tp.read()
+        self.baseline /= 3
+
+        self.acknowledged = False
+
+        self.touch_change = sensitivity
+        self.sum_ms = 0
+        self.state = TouchpadState.IDLE
+        self.diff_rate = 0
+        self.bl_reset_count = 0
+        self.bl_update_count = 0
+        self.debounce_count = 0
+        self.filter_value = TPConsts.FILTER_TOUCH_PERIOD
+
+        self.serial_thres_sec = 0
+        self.serial_interval_ms = 0
+
+        self.touch_thr = self.touch_change * TPConsts.TOUCH_THRESHOLD_PERCENT
+        self.noise_thr = self.touch_thr * TPConsts.NOISE_THRESHOLD_PERCENT
+        self.hyst_thr = self.touch_thr * TPConsts.HYSTERESIS_THRESHOLD_PERCENT
+        self.baseline_reset_thr = self.touch_thr * TPConsts.BASELINE_RESET_THRESHOLD_PERCENT
+        self.debounce_thr = TPConsts.STATE_SWITCH_DEBOUNCE // TPConsts.FILTER_TOUCH_PERIOD
+        self.bl_reset_count_thr = TPConsts.BASELINE_RESET_COUNT_THRESHOLD
+        self.bl_update_count_thr = TPConsts.BASELINE_UPDATE_COUNT_THRESHOLD // TPConsts.FILTER_IDLE_PERIOD
+
+    def read(self) -> tuple:
+        return (
+            self.state,
+            self.sum_ms if self.state in (TouchpadState.PRESS, TouchpadState.PUSH) else 0
+        )
+
+    def ack(self) -> None:
+        if self.state in (TouchpadState.PUSH, TouchpadState.PRESS):
+            self.acknowledged = True
+
+    # Returns updated "action_flag"
+    @micropython.native
+    def update(self, action_flag: bool) -> bool:
+        reading = self.tp.read()
+        filtered_reading = self.tp.read_filtered()
+
+        # Use raw data calculate the diff data. Buttons respond fastly™. Frequent button ok.
+        diff_data = self.baseline - reading
+        self.diff_rate = diff_data / self.baseline
+
+        # IDLE status, wait to be pushed
+        if self.state in (TouchpadState.IDLE, TouchpadState.RELEASE):
+            self.state = TouchpadState.IDLE
+
+            # If diff data less than noise threshold, update baseline value
+            if abs(self.diff_rate) <= self.noise_thr:
+                self.bl_reset_count = 0
+                self.debounce_count = 0
+                self.bl_update_count += 1
+
+                # bl_update_count_th control the baseline update frequency
+                if self.bl_update_count > self.bl_update_count_thr:
+                    if action_flag is None:
+                        # Not exceed action line
+                        action_flag = False
+                    self.bl_update_count = 0
+                    # Baseline updating can use Jitter filter ?
+                    self.baseline = filtered_reading
+            else:
+                # Exceed action line, represent change the filter Interval
+                action_flag = True
+                self.bl_update_count = 0
+                self.debounce_count += 1
+
+                # If the diff data is larger than the touch threshold, touch action be triggered.
+                if self.diff_rate >= self.touch_thr + self.hyst_thr:
+                    self.bl_reset_count = 0
+
+                    # Debounce processing
+                    if self.debounce_count >= self.debounce_thr or self.touch_change < TPConsts.TOUCH_LOW_SENSE_THRESHOLD:
+                        self.debounce_count = 0
+                        self.state = TouchpadState.PUSH
+
+                # diff data exceed the baseline reset line. reset baseline to raw data.
+                elif self.diff_rate <= 0 - self.baseline_reset_thr:
+                    self.debounce_count = 0
+                    # Check that if do the reset action again. reset baseline value to raw data.
+                    self.bl_reset_count += 1
+                    if self.bl_reset_count > self.bl_reset_count_thr:
+                        self.bl_reset_count = 0
+                        self.baseline = reading
+
+                else:
+                    self.debounce_count = 0
+                    self.bl_reset_count = 0
+
+        # The button is in touched status
+        else:
+            action_flag = True
+            # The button to be pressed continued. long press. # chinglish at its finest
+            if self.diff_rate > self.touch_thr - self.hyst_thr:
+                # sum_ms is the total time that the read value is under threshold, which means a touch event is on.
+                self.sum_ms += self.filter_value
+                # whether this is the exact time that a serial event happens
+                if self.serial_thres_sec > 0 and self.sum_ms - self.filter_value < self.serial_thres_sec * 1000 <= self.sum_ms:
+                    self.state = TouchpadState.PRESS
+            # Check the release action
+            else:
+                # Debounce processing
+                self.debounce_count += 1
+                if self.debounce_count >= self.debounce_thr or \
+                        abs(self.diff_rate) < self.noise_thr or \
+                        self.touch_change < TPConsts.TOUCH_LOW_SENSE_THRESHOLD:
+                    self.debounce_count = 0
+                    self.sum_ms = 0
+                    self.state = TouchpadState.RELEASE
+                    self.acknowledged = False
+        return action_flag
 
 
-class FilteredTouchpad(TouchPad):
-    def __init__(self, pin: Pin, threshold: int = 3.5, outlier_threshold: int = 100,
-                 steady_alpha=0.0005, recover_alpha=0.1):
-        super(FilteredTouchpad, self).__init__(pin)
-        self.threshold = threshold
-        self.outlier_threshold = outlier_threshold
-        self.steady_alpha = steady_alpha
-        self.recover_alpha = recover_alpha
+class TouchpadManager:
+    def __init__(self):
+        self.poll_interval = TPConsts.FILTER_TOUCH_PERIOD
+        self.touchpads = set()
+        self.running = False
+        self.inited = False
 
-        self.old_reading = self.read()
-        self._init = True
-        self._pressed = False
+    # Must be called after at least one touchpad has been loaded and before starting the loop
+    def init(self):
+        if len(self.touchpads) == 0:
+            raise OSError("Touchpad manager initialized before adding touchpads")
+        esp32.touch_filter_start(TPConsts.FILTER_TOUCH_PERIOD)
+        self.inited = True
 
-        self.lpf = LowPassFilter(0.001, self.old_reading)
-        self.adder = CircularAdder(5)
-        self.avg = MovingAverage(5)
+    # noinspection PyShadowingNames
+    def load_touchpad(self, name: str, pin: Pin, sensitivity: float = 1) -> FilteredTouchpad:
+        tp = FilteredTouchpad(name, pin, sensitivity)
+        self.touchpads.add(tp)
+        return tp
+
+    def set_poll_interval(self, value: int):
+        if not self.inited:
+            raise OSError("Must be inited first")
+        if value == self.poll_interval:
+            return
+        self.poll_interval = value
+        esp32.touch_filter_set_period(value)
+
+    def update(self):
+        if not self.inited:
+            raise OSError("Must be inited first")
+
+        action_flag = None
+
+        for tp in self.touchpads:
+            action_flag = tp.update(action_flag)
+
+        self.set_poll_interval(TPConsts.FILTER_TOUCH_PERIOD if action_flag else TPConsts.FILTER_IDLE_PERIOD)
+
+    async def async_loop(self):
+        if not self.inited:
+            raise OSError("Must be inited first")
+
+        self.running = True
+        while self.running:
+            self.update()
+            await uasyncio.sleep_ms(self.poll_interval)
+
+    def stop(self):
+        self.running = False
 
     @property
-    def pressed(self) -> bool:
-        old_reading = self.old_reading
-        reading = self.old_reading = self.avg.update(self.read())
-
-        if abs(reading - old_reading) < self.outlier_threshold:
-            lp_filtered = self.lpf.update(reading)
-            box_filtered = self.adder.update(lp_filtered - reading)
-            # print(box_filtered, box_filtered > self.threshold and 5 or 0)
-            self._pressed = box_filtered > self.threshold
-
-            self.lpf.alpha = self.steady_alpha if box_filtered > 0 else self.recover_alpha
-
-        # Discard initial "pressed" readings until we get a "not pressed"
-        if self._pressed and self._init:
-            return False
-        elif self._init:
-            self._init = False
-
-        return self._pressed
+    def active_touchpads(self) -> dict:
+        result = {}
+        for pad in self.touchpads:
+            if pad.acknowledged:
+                continue
+            state, duration = pad.read()
+            if state not in (TouchpadState.PRESS, TouchpadState.RELEASE):
+                continue
+            result[pad.name] = pad
+        return result
 
 
-class TouchPads:
-    def __init__(self):
-        self.tp = {}
-        self.debounce_off = set()
-        self.debounce_on = {}
+touchpad_mgr = TouchpadManager()
 
-        for name, pin in constants.TOUCHPADS.items():
-            self.tp[name] = FilteredTouchpad(Pin(pin))
-            self.debounce_on[name] = 0
+for name in constants.TOUCHPADS:
+    pin = constants.TOUCHPADS[name]
+    sensitivity = conf.touchpads_sensitivity[name]
+    touchpad_mgr.load_touchpad(name, Pin(pin), sensitivity)
 
-    def read_all(self):
-        for name, tp in self.tp.items():
-            yield name, tp.pressed
-
-    @micropython.native
-    def poll(self) -> list:
-        for name, pressed in self.read_all():
-            if pressed and name not in self.debounce_off:
-                self.debounce_on[name] += 1
-            elif pressed and name in self.debounce_off:
-                self.debounce_on[name] = 0
-                self.debounce_off.remove(name)
-
-        touchpads_pressed = []
-
-        for name, occurrences in self.debounce_on.items():
-            if occurrences > 4 or (name in ("FILTER", "LOCK") and occurrences > 0):
-                touchpads_pressed.append(name)
-                self.debounce_on[name] = 0
-
-                if name not in ("FILTER", "LOCK"):
-                    self.debounce_off.add(name)
-
-        return touchpads_pressed
-
-
-touchpads = TouchPads()
+touchpad_mgr.init()

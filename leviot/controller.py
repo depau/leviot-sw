@@ -7,7 +7,7 @@ from leviot.http.server import HttpServer
 from leviot.mqtt.controller import MQTTController
 from leviot.persistence import persistence
 from leviot.state import state_tracker
-from leviot.touchpad import touchpads
+from leviot.touchpad import touchpad_mgr
 
 log = ulog.Logger("controller")
 
@@ -83,64 +83,69 @@ class LevIoT:
         log.i("Timer done")
 
     async def touchpad_loop(self):
-        lock_hold_t = 0
-        filter_hold_t = 0
+        self.loop.create_task(touchpad_mgr.async_loop())
 
-        while not self.should_stop:
-            pressed = touchpads.poll()
+        try:
+            while not self.should_stop:
+                pressed = touchpad_mgr.active_touchpads
 
-            if "LOCK" not in pressed:
-                lock_hold_t = 0
-            else:
-                lock_hold_t += constants.TOUCHPADS_POLL_INTERVAL_MS
-                if lock_hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
-                    lock_hold_t = 0
+                if 'LOCK' in pressed:
+                    pad = pressed["LOCK"]
+                    _, hold_t = pad.read()
+                    if hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
+                        pad.ack()
+                        state_tracker.lock = not state_tracker.lock
+                        with gpio:
+                            await self.update_leds()
 
-                    await self.set_lock(not state_tracker.lock, cause="touchpad")
+                if not state_tracker.lock:
+                    for name, pad in pressed.items():
+                        if name == "FILTER":
+                            _, hold_t = pad.read()
+                            if hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
+                                pad.ack()
+                                if persistence.replacement_due or persistence.dusting_due or state_tracker.user_maint:
+                                    persistence.notify_maintenance()
+                                else:
+                                    state_tracker.user_maint = not state_tracker.user_maint
+                                with gpio:
+                                    await self.update_leds()
+                        elif name == "POWER":
+                            pad.ack()
+                            await self.set_power(not state_tracker.power, cause="touchpad")
 
-            if "FILTER" not in pressed:
-                filter_hold_t = 0
-            elif not state_tracker.lock:
-                filter_hold_t += constants.TOUCHPADS_POLL_INTERVAL_MS
-                if filter_hold_t >= constants.TOUCHPAD_HOLD_TIMEOUT_MS:
-                    filter_hold_t = 0
+                        elif name == "FAN":
+                            pad.ack()
+                            if state_tracker.speed == 0:
+                                await self.set_fan_speed(state_tracker.prev_speed or 1, cause="touchpad")
+                            else:
+                                await self.set_fan_speed(1 + (state_tracker.speed % 3), cause="touchpad")
 
-                    if persistence.replacement_due or persistence.dusting_due or state_tracker.user_maint:
-                        persistence.notify_maintenance()
-                    else:
-                        state_tracker.user_maint = not state_tracker.user_maint
-                    with gpio:
-                        await self.update_leds()
+                        elif name == "NIGHT":
+                            pad.ack()
+                            if state_tracker.speed == 0:
+                                await self.set_fan_speed(state_tracker.prev_speed, cause="touchpad")
+                            else:
+                                await self.set_fan_speed(0, cause="touchpad")
 
-            if not state_tracker.lock:
-                for pad in pressed:
-                    if pad == "POWER":
-                        await self.set_power(not state_tracker.power, cause="touchpad")
+                        elif name == "LIGHT":
+                            pad.ack()
+                            await self.set_lights(not state_tracker.lights, cause="touchpad")
 
-                    elif pad == "FAN":
-                        if state_tracker.speed == 0:
-                            await self.set_fan_speed(state_tracker.prev_speed or 1, cause="touchpad")
-                        else:
-                            await self.set_fan_speed(1 + (state_tracker.speed % 3), cause="touchpad")
+                        elif name == "TIMER":
+                            pad.ack()
+                            newtime = state_tracker.timer_left + 2 * 60
+                            if newtime > 9 * 60:
+                                newtime = 0
+                            await self.set_timer(newtime, cause="touchpad")
 
-                    elif pad == "NIGHT":
-                        if state_tracker.speed == 0:
-                            await self.set_fan_speed(state_tracker.prev_speed, cause="touchpad")
-                        else:
-                            await self.set_fan_speed(0, cause="touchpad")
+                await uasyncio.sleep_ms(constants.TOUCHPADS_POLL_INTERVAL_MS)
 
-                    elif pad == "LIGHT":
-                        await self.set_lights(not state_tracker.lights, cause="touchpad")
+        finally:
+            touchpad_mgr.stop()
 
-                    elif pad == "TIMER":
-                        newtime = state_tracker.timer_left + 2 * 60
-                        if newtime > 9 * 60:
-                            newtime = 0
-                        await self.set_timer(newtime, cause="touchpad")
-
-            await uasyncio.sleep_ms(constants.TOUCHPADS_POLL_INTERVAL_MS)
-
-    async def update_leds(self):
+    @staticmethod
+    async def update_leds():
         if not state_tracker.lights:
             gpio.leds(False)
         else:
