@@ -9,6 +9,14 @@ def wake_on_touch(flag):
     print(f"Wake on touch: {flag}")
 
 
+def touch_filter_start(period):
+    print(f"touch_filter_start({period})")
+
+
+def touch_filter_set_period(period):
+    print(f"touch_filter_set_period({period})")
+
+
 class NVS:
     def __init__(self, namespace):
         if len(namespace) > 15:

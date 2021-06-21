@@ -63,6 +63,9 @@ class TouchPad:
     def read(self):
         return 10000
 
+    def read_filtered(self):
+        return 10000
+
 
 def freq(new_clock, **kw):
     print("OVERCLOCCCKKKK OMH SUCH SPEED VERY FAST {}".format(new_clock))
