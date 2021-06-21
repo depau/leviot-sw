@@ -1,6 +1,7 @@
 import esp32
 import micropython
 import uasyncio
+import utime
 from machine import Pin, TouchPad
 from micropython import const
 import usys
@@ -83,6 +84,7 @@ class FilteredTouchpad:
         self.baseline /= 3
 
         self.acknowledged = False
+        self.event_start = 0
 
         self.touch_change = sensitivity
         self.sum_ms = 0
@@ -107,7 +109,7 @@ class FilteredTouchpad:
     def read(self) -> tuple:
         return (
             self.state,
-            self.sum_ms if self.state in (TouchpadState.PRESS, TouchpadState.PUSH) else 0
+            (utime.ticks_ms() - self.event_start) if self.state in (TouchpadState.PRESS, TouchpadState.PUSH) else 0
         )
 
     def ack(self) -> None:
@@ -156,6 +158,7 @@ class FilteredTouchpad:
                     if self.debounce_count >= self.debounce_thr or self.touch_change < TPConsts.TOUCH_LOW_SENSE_THRESHOLD:
                         self.debounce_count = 0
                         self.state = TouchpadState.PUSH
+                        self.event_start = utime.ticks_ms()
 
                 # diff data exceed the baseline reset line. reset baseline to raw data.
                 elif self.diff_rate <= 0 - self.baseline_reset_thr:
