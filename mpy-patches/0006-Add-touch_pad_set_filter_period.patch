@@ -1,0 +1,41 @@
+From e386408c8a57c59fcc5cbe1b382b6c601bb8880f Mon Sep 17 00:00:00 2001
+From: Davide Depau <davide@depau.eu>
+Date: Sat, 15 May 2021 07:00:57 +0200
+Subject: [PATCH] Add touch_pad_set_filter_period
+
+---
+ ports/esp32/modesp32.c | 11 +++++++++++
+ 1 file changed, 11 insertions(+)
+
+diff --git a/ports/esp32/modesp32.c b/ports/esp32/modesp32.c
+index 67b892ffb..f220592f0 100644
+--- a/ports/esp32/modesp32.c
++++ b/ports/esp32/modesp32.c
+@@ -95,6 +95,16 @@ STATIC mp_obj_t esp32_touch_filter_start(const mp_obj_t period_in) {
+ }
+ STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp32_touch_filter_start_obj, esp32_touch_filter_start);
+ 
++STATIC mp_obj_t esp32_touch_filter_set_period(const mp_obj_t period_in) {
++    mp_int_t period = mp_obj_get_int(period_in);
++    esp_err_t err = touch_pad_set_filter_period(period);
++    if (err == ESP_OK) {
++        return mp_const_none;
++    }
++    mp_raise_ValueError(MP_ERROR_TEXT("Touch pad error"));
++}
++STATIC MP_DEFINE_CONST_FUN_OBJ_1(esp32_touch_filter_set_period_obj, esp32_touch_filter_set_period);
++
+ STATIC mp_obj_t esp32_touch_filter_stop() {
+     esp_err_t err = touch_pad_filter_stop();
+     if (err == ESP_OK) {
+@@ -239,6 +249,7 @@ STATIC const mp_rom_map_elem_t esp32_module_globals_table[] = {
+     #if CONFIG_IDF_TARGET_ESP32
+     { MP_ROM_QSTR(MP_QSTR_touch_set_cycles), MP_ROM_PTR(&esp32_touch_set_cycles_obj) },
+     { MP_ROM_QSTR(MP_QSTR_touch_filter_start), MP_ROM_PTR(&esp32_touch_filter_start_obj) },
++    { MP_ROM_QSTR(MP_QSTR_touch_filter_set_period), MP_ROM_PTR(&esp32_touch_filter_set_period_obj) },
+     { MP_ROM_QSTR(MP_QSTR_touch_filter_stop), MP_ROM_PTR(&esp32_touch_filter_stop_obj) },
+     { MP_ROM_QSTR(MP_QSTR_touch_filter_delete), MP_ROM_PTR(&esp32_touch_filter_delete_obj) },
+     { MP_ROM_QSTR(MP_QSTR_raw_temperature), MP_ROM_PTR(&esp32_raw_temperature_obj) },
+-- 
+2.31.1
+
