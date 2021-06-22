@@ -162,6 +162,7 @@ class LevIoT:
                 break
             await uasyncio.sleep_ms(self.led_feedback_due_at_ms - t)
 
+        self.led_feedback_due_at_ms = 0
         with gpio:
             await self.update_leds('action_feedback')
 
