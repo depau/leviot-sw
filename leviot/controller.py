@@ -174,10 +174,14 @@ class LevIoT:
             self.loop.create_task(self._led_feedback_worker())
 
     async def update_leds(self, cause="unknown"):
-        if cause != "touchpad" and not state_tracker.lights:
+        if cause not in ("touchpad", "kickstart") and not state_tracker.lights:
             gpio.leds(False)
         else:
             gpio.value(constants.LED_POWER, state_tracker.power)
+            # Provide feedback on poweroff when lights are off
+            if cause in ("touchpad", "kickstart") and not state_tracker.power and not state_tracker.lights:
+                gpio.on(constants.LED_POWER)
+
             gpio.value(constants.LED_LOCK, state_tracker.lock and state_tracker.power)
             gpio.value(constants.LED_FAN, state_tracker.speed > 0 and state_tracker.power)
 
