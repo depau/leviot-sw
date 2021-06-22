@@ -182,7 +182,6 @@ class LevIoT:
             if cause in ("touchpad", "kickstart") and not state_tracker.power and not state_tracker.lights:
                 gpio.on(constants.LED_POWER)
 
-            gpio.value(constants.LED_LOCK, state_tracker.lock and state_tracker.power)
             gpio.value(constants.LED_FAN, state_tracker.speed > 0 and state_tracker.power)
 
             gpio.value(constants.LED_NIGHT, state_tracker.speed == 0 and state_tracker.power)
@@ -203,6 +202,8 @@ class LevIoT:
 
             if cause in ("touchpad", "kickstart") and not state_tracker.lights:
                 await self._led_feedback()
+
+        gpio.value(constants.LED_LOCK, state_tracker.lock and state_tracker.power)
 
     async def set_power(self, on: bool, cause="unknown"):
         state_tracker.power = on
