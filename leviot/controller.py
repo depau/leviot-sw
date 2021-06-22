@@ -20,6 +20,7 @@ class LevIoT:
         self.loop = uasyncio.get_event_loop()
         self.should_stop = False
         self.is_kickstarting = False
+        self.led_feedback_due_at_ms = 0
 
     def stop(self):
         self.should_stop = True
@@ -107,7 +108,7 @@ class LevIoT:
                                 else:
                                     state_tracker.user_maint = not state_tracker.user_maint
                                 with gpio:
-                                    await self.update_leds()
+                                    await self.update_leds(cause='touchpad')
                         elif name == "POWER":
                             pad.ack()
                             await self.set_power(not state_tracker.power, cause="touchpad")
@@ -142,9 +143,25 @@ class LevIoT:
         finally:
             touchpad_mgr.stop()
 
-    @staticmethod
-    async def update_leds():
-        if not state_tracker.lights:
+    async def _led_feedback_worker(self):
+        while True:
+            t = utime.ticks_ms()
+            if self.led_feedback_due_at_ms <= t:
+                break
+            await uasyncio.sleep_ms(self.led_feedback_due_at_ms - t)
+
+        with gpio:
+            await self.update_leds('action_feedback')
+
+    async def _led_feedback(self):
+        cur_ms = self.led_feedback_due_at_ms
+        self.led_feedback_due_at_ms = utime.ticks_ms() + constants.LIGHTS_OFF_TOUCHPAD_TIMEOUT
+
+        if cur_ms == 0:
+            self.loop.create_task(self._led_feedback_worker())
+
+    async def update_leds(self, cause="unknown"):
+        if cause != "touchpad" and not state_tracker.lights:
             gpio.leds(False)
         else:
             gpio.value(constants.LED_POWER, state_tracker.power)
@@ -166,6 +183,9 @@ class LevIoT:
                 gpio.value(constants.LED_FILTER, "blink")
             else:
                 gpio.value(constants.LED_FILTER, persistence.dusting_due)
+
+            if cause in ("touchpad", "kickstart") and not state_tracker.lights:
+                await self._led_feedback()
 
     async def set_power(self, on: bool, cause="unknown"):
         state_tracker.power = on
@@ -193,7 +213,7 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL1, False)
                 gpio.value(constants.FAN_CTL2, False)
                 gpio.value(constants.FAN_CTL3, False)
-                await self.update_leds()
+                await self.update_leds(cause)
 
             persistence.notify_poweron()
 
@@ -225,7 +245,7 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL1, state_tracker.speed == 1 and state_tracker.power)
                 gpio.value(constants.FAN_CTL2, state_tracker.speed == 2 and state_tracker.power)
                 gpio.value(constants.FAN_CTL3, state_tracker.speed == 3 and state_tracker.power)
-                await self.update_leds()
+                await self.update_leds(cause)
         finally:
             if cause == "kickstart":
                 self.is_kickstarting = False
@@ -233,13 +253,13 @@ class LevIoT:
     async def set_lights(self, lights: bool, cause="unknown"):
         state_tracker.lights = lights
         with gpio:
-            await self.update_leds()
+            await self.update_leds()  # Cause explicitly not provided so we don't get feedback
 
         log.i("Set lights to {} (cause: {})".format(lights, cause))
 
     async def set_lock(self, lock: bool, cause="unknown"):
         state_tracker.lock = lock
         with gpio:
-            await self.update_leds()
+            await self.update_leds(cause)
 
         log.i("Set lock to {} (cause: {})".format(lock, cause))

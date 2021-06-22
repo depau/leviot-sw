@@ -15,6 +15,9 @@ TOUCHPADS = {
 TOUCHPADS_POLL_INTERVAL_MS = 25
 TOUCHPAD_HOLD_TIMEOUT_MS = 2000
 
+# Amount of time for which the LEDs will be turned on if lights == OFF but an action was performed
+LIGHTS_OFF_TOUCHPAD_TIMEOUT = const(1200)
+
 # Shift registers
 PIN_SR_DS = const(18)
 PIN_SR_CLK = const(19)
