@@ -1,5 +1,6 @@
 import uasyncio
 import utime
+import usys
 
 from leviot import constants, conf, ulog
 from leviot.extgpio import gpio
