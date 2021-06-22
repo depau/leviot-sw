@@ -1,6 +1,5 @@
 import uasyncio
 import utime
-import usys
 
 from leviot import constants, conf, ulog
 from leviot.extgpio import gpio
@@ -22,6 +21,7 @@ class LevIoT:
         self.should_stop = False
         self.is_kickstarting = False
         self.led_feedback_due_at_ms = 0
+        self.timer_task = None
 
     def stop(self):
         self.should_stop = True
@@ -63,26 +63,37 @@ class LevIoT:
             await self.mqtt.notify_timer()
 
         if not timer_running and time > 0:
-            self.loop.create_task(self.timer_loop())
+            self.timer_task = self.loop.create_task(self.timer_loop())
+
+        if time == 0 and self.timer_task:
+            self.timer_task.cancel()
 
     async def timer_loop(self):
-        if not state_tracker.power:
-            await self.set_power(True, cause="timer")
+        try:
+            if not state_tracker.power:
+                await self.set_power(True, cause="timer")
 
-        t1 = t2 = 0
-        while state_tracker.timer_left > 0:
-            await uasyncio.sleep_ms(60 * 1000 - (t2 - t1))
-            t1 = utime.time_ns() // 1000
-            state_tracker.timer_left -= 1
-            log.i("Timer {} minutes left".format(state_tracker.timer_left))
+            t1 = t2 = 0
+            while state_tracker.timer_left > 0:
+                await uasyncio.sleep_ms(60 * 1000 - (t2 - t1))
+                # Timer time might have changed by the time we get here
+                if state_tracker.timer_left <= 0:
+                    break
+                t1 = utime.time_ns() // 1000
+                state_tracker.timer_left -= 1
+                log.i("Timer {} minutes left".format(state_tracker.timer_left))
 
-            if conf.mqtt_enabled:
-                await self.mqtt.notify_timer()
-            t2 = utime.time_ns() // 1000
+                if conf.mqtt_enabled:
+                    await self.mqtt.notify_timer()
+                t2 = utime.time_ns() // 1000
 
-        if state_tracker.power:
-            await self.set_power(False, cause="timer")
-        log.i("Timer done")
+            if state_tracker.power:
+                await self.set_power(False, cause="timer")
+            log.i("Timer done")
+        except uasyncio.CancelledError:
+            log.i("Timer cancelled")
+        finally:
+            self.timer_task = None
 
     async def touchpad_loop(self):
         self.loop.create_task(touchpad_mgr.async_loop())
