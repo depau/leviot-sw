@@ -1,3 +1,4 @@
+import machine
 import uasyncio as asyncio
 import usys
 
@@ -59,6 +60,8 @@ class HttpServer:
                     await self.handle_priv_set_power(writer, False)
                 elif req.path == "/priv-api/timer":
                     await self.handle_priv_set_timer(req, writer)
+                elif req.path == "/priv-api/reset":
+                    await self.handle_priv_reset(writer)
                 else:
                     await uhttp.HTTPResponse.not_found(writer)
 
@@ -119,3 +122,8 @@ class HttpServer:
             return await uhttp.HTTPResponse.bad_request(writer)
 
         await uhttp.HTTPResponse.see_other(writer, "/")
+
+    @staticmethod
+    async def handle_priv_reset(writer: asyncio.StreamWriter):
+        await uhttp.HTTPResponse().write_into(writer)
+        machine.reset()
