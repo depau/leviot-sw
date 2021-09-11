@@ -65,16 +65,21 @@ fi
 
 if [ ! -f "micropython/LICENSE" ]; then
   msg "clone micropython"
-  git clone --recursive https://github.com/micropython/micropython || true
+  git clone https://github.com/micropython/micropython || true
 fi
 msg "micropython checkout"
 cd micropython
+git submodule update --init
 git stash && git stash drop || true
 git checkout $MPY_VER
 
-for patch in ../mpy-patches/*.patch; do
-  git am <"$patch"
-done
+if [ ! -f applied-patches.hook ]; then
+  for patch in ../mpy-patches/*.patch; do
+    git am <"$patch"
+  done
+fi
+
+touch applied-patches.hook
 
 if [ $flash16 == 1 ]; then
   ## Set 16MB flash size
