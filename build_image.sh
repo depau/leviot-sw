@@ -73,13 +73,9 @@ git submodule update --init
 git stash && git stash drop || true
 git checkout $MPY_VER
 
-if [ ! -f applied-patches.hook ]; then
-  for patch in ../mpy-patches/*.patch; do
-    git am <"$patch"
-  done
-fi
-
-touch applied-patches.hook
+for patch in ../mpy-patches/*.patch; do
+  git am <"$patch"
+done
 
 if [ $flash16 == 1 ]; then
   ## Set 16MB flash size
