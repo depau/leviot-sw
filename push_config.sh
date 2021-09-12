@@ -10,13 +10,17 @@ if [ "$1" == "" ] || [ "$1" == "-h" ] || [ "$1" == "--help" ]; then
 fi
 
 tty="$1"
+build_venv="build-venv"
+if ! [ "$2" == "" ]; then
+	build_venv="$2"
+fi
 
 if [ ! -e "$tty" ]; then
   echo "Serial port does not exist"
   exit 1
 fi
 
-if [ ! -e "build-venv/bin/python" ]; then
+if [ ! -e "$build_venv/bin/python" ]; then
   echo "Build virtual environment does not exist or is broken. Run ./build_image.sh first to set it up."
   exit 1
 fi
@@ -31,7 +35,7 @@ if ! PYTHONPATH="$(pwd)/upy_test_stubs" python -c 'import leviot_conf'; then
   exit 1
 fi
 
-source build-venv/bin/activate
+source $build_venv/bin/activate
 
 echo "Ready to copy: reset the board and, when all LEDs turn on,"
 echo "hold the BOOT button until they turn off and the red LED turns on."

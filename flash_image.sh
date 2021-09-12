@@ -12,17 +12,21 @@ fi
 
 board="GENERIC_OTA"
 tty="$1"
+build_venv="build-venv"
+if ! [ "$2" == "" ]; then
+	build_venv="$2"
+fi
 
 if [ ! -e "$tty" ]; then
   echo "Serial port does not exist"
   exit 1
 fi
 
-if [ ! -e "build-venv/bin/python" ]; then
+if [ ! -e "$build_venv/bin/python" ]; then
   echo "Build virtual environment does not exist or is broken. Run ./build_image.sh first to set it up."
   exit 1
 fi
-source build-venv/bin/activate
+source $build_venv/bin/activate
 
 fw_path="micropython/ports/esp32/build-$board/firmware.bin"
 if [ ! -f "$fw_path" ]; then
