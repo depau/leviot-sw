@@ -276,8 +276,12 @@ class LevIoT:
         log.i("Set lights to {} (cause: {})".format(lights, cause))
 
     async def set_lock(self, lock: bool, cause="unknown"):
-        state_tracker.lock = lock
-        with gpio:
-            await self.update_leds(cause)
+        # Lock only if it's possible to see it is locked, fail with an info otherwise
+        if state_tracker.power == True and state_tracker.lights == True:
+            state_tracker.lock = lock
+            with gpio:
+                await self.update_leds(cause)
 
-        log.i("Set lock to {} (cause: {})".format(lock, cause))
+            log.i("Set lock to {} (cause: {})".format(lock, cause))
+        else:
+            log.i("Cannot lock the screen while the lights are off or the motor is not running")
