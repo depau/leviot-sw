@@ -129,6 +129,9 @@ class Persistence:
         elif loaded < 4:
             log.i("Restored missing values to defaults")
 
+        self.stats()
+
+    def stats(self):
         log.i("Stats:")
         log.i(" - Lifetime: {} seconds".format(self.lifetime))
         log.i(" - Filter installated at {} seconds".format(self.filter_install))
@@ -168,6 +171,7 @@ class Persistence:
         return False
 
     def _persist_lifetime(self):
+        log.d("Persistence._persist_lifetime()")
         self._lifetime += time() - self.last_update
         self._relative_filter_lifetime += self._time_to_rel_time(time() - self.last_update, state_tracker.speed)
         self.last_update = time()
@@ -181,10 +185,14 @@ class Persistence:
 
     @property
     def lifetime(self):
+        if not state_tracker.power:
+            return self._lifetime
         return (time() - self.last_update) + self._lifetime
 
     @property
     def relative_filter_lifetime(self):
+        if not state_tracker.power:
+            return self._relative_filter_lifetime
         return self._time_to_rel_time(time() - self.last_update, state_tracker.speed) + self._relative_filter_lifetime
 
     # noinspection PyShadowingNames
@@ -204,6 +212,8 @@ class Persistence:
         self.last_update = time()
 
     def notify_maintenance(self):
+        self.stats()
+
         state_tracker.user_maint = False
         if self.replacement_due:
             self._persist_lifetime()
@@ -232,6 +242,7 @@ class Persistence:
                 self._persist_lifetime()
                 changed = True
         if changed:
+            self.stats()
             self._commit()
 
 
