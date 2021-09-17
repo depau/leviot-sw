@@ -11,12 +11,14 @@ def set_mqtt(mqttctrl):
 class Logger:
     def __init__(self, tag):
         self.tag = tag
+        self.syslog = None
         try:
             if conf.syslog:
-                self.syslog = SyslogClient(ip=conf.syslog)
-            else:
-                self.syslog = DummyClient()
-        except:
+                self.syslog = SyslogClient(ip='192.168.1.157')
+        except Exception as ex:
+            self._print_and_mqtt("DEBUG: Cannot connect to {} SysLog server".format(conf.syslog))
+        
+        if not self.syslog:
             self.syslog = DummyClient()
 
     @staticmethod
