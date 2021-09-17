@@ -233,7 +233,7 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL3, False)
                 await self.update_leds(cause)
 
-            persistence.notify_poweron()
+            persistence.notify_poweroff()
 
     async def set_fan_speed(self, speed: int, cause="unknown"):
         if not 0 <= speed <= 3:
