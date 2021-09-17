@@ -91,3 +91,6 @@ touchpads_sensitivity = {
     "LIGHT": 0.04321728691476591,
     "NIGHT": 0.04085603112840467,
 }
+
+## SysLog remote server address - set to None to prevent SysLog server configuration
+syslog = 'syslog.local'

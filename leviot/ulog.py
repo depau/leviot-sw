@@ -1,4 +1,5 @@
 from leviot.utils.usyslog import UDPClient as SyslogClient, SyslogClient as DummyClient
+from leviot import conf
 
 mqtt = None
 
@@ -11,7 +12,10 @@ class Logger:
     def __init__(self, tag):
         self.tag = tag
         try:
-            self.syslog = SyslogClient(ip='syslog.local')
+            if conf.syslog:
+                self.syslog = SyslogClient(ip=conf.syslog)
+            else:
+                self.syslog = DummyClient()
         except:
             self.syslog = DummyClient()
 
