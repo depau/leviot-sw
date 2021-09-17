@@ -11,15 +11,7 @@ def set_mqtt(mqttctrl):
 class Logger:
     def __init__(self, tag):
         self.tag = tag
-        self.syslog = None
-        try:
-            if conf.syslog:
-                self.syslog = SyslogClient(ip='192.168.1.157')
-        except Exception as ex:
-            self._print_and_mqtt("DEBUG: Cannot connect to {} SysLog server".format(conf.syslog))
-        
-        if not self.syslog:
-            self.syslog = DummyClient()
+        self.syslog = DummyClient()
 
     @staticmethod
     def _print_and_mqtt(message: str):
@@ -27,18 +19,32 @@ class Logger:
         if mqtt is not None:
             mqtt.log(message)
 
+    def syslog_reconnect(self):
+        if not conf.syslog or type(self.syslog) is SyslogClient:
+            return
+
+        try:
+            self.syslog = SyslogClient(ip=conf.syslog)
+            self._print_and_mqtt("Syslog Connected at {}".format(conf.syslog))
+        except:
+            self._print_and_mqtt("DEBUG: Cannot connect to {} SysLog server".format(conf.syslog))
+
     def d(self, message):
         self._print_and_mqtt("DEBUG {}: {}".format(self.tag, message))
+        self.syslog_reconnect()
         self.syslog.debug("{}: {}".format(self.tag, message))
 
     def i(self, message):
         self._print_and_mqtt("INFO  {}: {}".format(self.tag, message))
+        self.syslog_reconnect()
         self.syslog.info("{}: {}".format(self.tag, message))
 
     def w(self, message):
         self._print_and_mqtt("WARN  {}: {}".format(self.tag, str(message)))
+        self.syslog_reconnect()
         self.syslog.warning("{}: {}".format(self.tag, message))
 
     def e(self, message):
         self._print_and_mqtt("ERROR {}: {}".format(self.tag, str(message)))
+        self.syslog_reconnect()
         self.syslog.error("{}: {}".format(self.tag, message))
