@@ -91,26 +91,26 @@ class Persistence:
             state_tracker.timer_left = (_settings >> BIT_TIMER_LEFT) & BMASK_TIMER_LEFT
             loaded += 1
         except OSError as e:
-            usys.print_exception(e)
+            log.e(e)
 
         try:
             self._lifetime = self.nvs.get_i32(DEVICE_LIFETIME)
             loaded += 1
         except OSError as e:
-            usys.print_exception(e)
+            log.e(e)
 
         try:
             self._relative_filter_lifetime = self.nvs.get_i32(FILTER_RELATIVE_LIFETIME)
             loaded += 1
         except OSError as e:
-            usys.print_exception(e)
+            log.e(e)
 
         try:
             self.filter_install = self.nvs.get_i32(FILTER_INSTALL_TIME)
             loaded += 1
         except OSError as e:
-            usys.print_exception(e)
-
+            log.e(e)
+            
         if loaded == 4:
             log.i("Loaded persisted info from storage")
         else:

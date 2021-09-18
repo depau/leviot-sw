@@ -24,16 +24,6 @@ try:
 except ImportError:
     pass
 
-# Log every exceptions
-from leviot import ulog
-log = ulog.Logger("exceptions")
-import sys
-def my_except_hook(exctype, value, traceback):
-    log.d("TYPE: {}\nVALUE: {}\nTRACEBACK:\n\n{}".format(exctype, value, traceback))
-    sys.__excepthook__(exctype, value, traceback)
-sys.excepthook = my_except_hook
-
-
 # noinspection PyPep8Naming
 class Command:
     def __init__(self, callback):

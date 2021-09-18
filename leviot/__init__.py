@@ -59,7 +59,6 @@ def main():
         log.e("Main loop exited!")
     except Exception as e:
         log.e(e)
-        usys.print_exception(e)
     finally:
         # noinspection PyBroadException
         try:

@@ -69,7 +69,7 @@ class HttpServer:
                 await uhttp.HTTPResponse.not_found(writer)
         except (OSError, HTTPError) as e:
             if "Empty request" not in str(e):
-                usys.print_exception(e)
+                log.e(e)
         except Exception:
             await uhttp.HTTPResponse.internal_server_error(writer)
         finally:
