@@ -15,6 +15,10 @@ Initial version.
 - Git
 - Python3
 
+# Testing on a Local Environment
+
+Refer to ![upy_test_stubs/README.md](upy_test_stubs/README.md)
+
 ## License
 
 GNU General Public License v3.0

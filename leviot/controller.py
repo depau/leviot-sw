@@ -118,7 +118,7 @@ class LevIoT:
                                 if persistence.replacement_due or persistence.dusting_due or state_tracker.user_maint:
                                     persistence.notify_maintenance()
                                 else:
-                                    state_tracker.user_maint = not state_tracker.user_maint
+                                    state_tracker.user_maint = False
                                 with gpio:
                                     await self.update_leds(cause='touchpad')
                         elif name == "POWER":
@@ -233,7 +233,7 @@ class LevIoT:
                 gpio.value(constants.FAN_CTL3, False)
                 await self.update_leds(cause)
 
-            persistence.notify_poweron()
+            persistence.notify_poweroff()
 
     async def set_fan_speed(self, speed: int, cause="unknown"):
         if not 0 <= speed <= 3:

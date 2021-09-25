@@ -8,7 +8,7 @@ Only APIs that are actually in use are stubbed.
 To run the program with CPython, run from the main project directory:
 
 ```bash
-export PYTHONPATH="$(pwd):$(pwd)/upy_test_stubs" python boot.py
+PYTHONPATH="$(pwd):$(pwd)/upy_test_stubs" python _boot.py
 ```
 
 All listening ports are automatically offset by 8000 if they're lower than 1024. So if `http_listen_port` is set to 80,

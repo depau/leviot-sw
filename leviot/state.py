@@ -27,7 +27,7 @@ class StateTracker:
                 raise ValueError()
             except ValueError as e:
                 log.e("Provided value for timer_left is < 0, which is invalid!")
-                usys.print_exception(e)
+                log.e(e)
             value = 0
         self._timer_left = value
 

@@ -24,7 +24,6 @@ try:
 except ImportError:
     pass
 
-
 # noinspection PyPep8Naming
 class Command:
     def __init__(self, callback):

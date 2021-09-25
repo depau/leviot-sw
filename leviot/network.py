@@ -47,12 +47,12 @@ async def up() -> network.WLAN:
                 break
             except Exception as e:
                 log.e("Failed to connect to Wi-Fi, will retry")
-                usys.print_exception(e)
+                log.e(e)
                 try:
                     wlan.active(False)
                     await uasyncio.sleep_ms(500)
                 except Exception as e:
-                    usys.print_exception(e)
+                    log.e(e)
                     pass
         log.i("Connected with IP " + wlan.ifconfig()[0])
 
